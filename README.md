@@ -110,7 +110,7 @@ zax-shell (CLI)
 모든 zax-shell 데이터는 `~/.zax-shell/` 한 곳에 모입니다:
 - `~/.zax-shell/` (또는 사용자가 install.sh로 설치한 디렉토리) ← install (git/src/node_modules)
 - `~/.zax-shell/state/` ← state.json, repo/, worktrees/, branch snapshots, daemon.pid
-- `~/.zax-shell/config/` ← config.json, jira-token, ui-prefs.json, nvim/
+- `~/.zax-shell/config/` ← config.json, ui-prefs.json, nvim/
 - uninstall: `rm -rf ~/.zax-shell` 한 줄
 
 - **Main worktree (`_main/`)**: 사용자가 어느 브랜치에 체크아웃되어 있든 zax-shell은 항상 `origin/master` 기준으로 폴더/drift를 계산. 사용자 워킹 트리는 절대 안 건드림.

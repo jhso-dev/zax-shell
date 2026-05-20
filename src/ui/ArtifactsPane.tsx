@@ -68,10 +68,24 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
     if (input === 'r') { emitEvent({ type: 'refresh-hub' }); return; }
 
     if (input === 'o') {
-      // GitHub PR search across the whole org, scoped to this epic key.
       const key = state?.selectedEpic;
-      if (key) {
-        const org = process.env.ZAX_SHELL_GH_ORG ?? 'zigbang';
+      if (!key) return;
+      const cur = artifacts[list.cursor];
+      const org = process.env.ZAX_SHELL_GH_ORG ?? 'zigbang';
+      const repo = process.env.ZAX_SHELL_PRODUCT_HUB_REPO ?? 'product-hub';
+      if (cur && selectedEpicFolder) {
+        // Cursor on a file → open that file's blob page on GitHub. Use the
+        // feat branch if the epic lives there, otherwise the default branch.
+        const ref = selectedEpic?.branch
+          ? selectedEpic.branch.replace(/^origin\//, '')
+          : 'master';
+        const path = `epics/${selectedEpicFolder}/${cur.path}`.split('/').map(encodeURIComponent).join('/');
+        emitEvent({
+          type: 'open-browser',
+          url: `https://github.com/${org}/${repo}/blob/${ref}/${path}`,
+        });
+      } else {
+        // No artifact under cursor → org-wide PR search for the epic key.
         const q = encodeURIComponent(`org:${org} ${key}`);
         emitEvent({ type: 'open-browser', url: `https://github.com/search?q=${q}&type=pullrequests` });
       }
@@ -126,7 +140,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
           return `${state.selectedEpic}${branchTag}${cursorPart}`;
         })()}
       </Text>
-      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · o GitHub웹(PR검색) · ✓ok ◐drift ⚠stale ·missing</Text>
+      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · o GitHub(파일/PR) · ✓ok ◐drift ⚠stale ·missing</Text>
 
       {!state.selectedEpic ? (
         <Text dimColor wrap="truncate">좌측에서 에픽을 선택하세요</Text>

@@ -10,8 +10,8 @@
 #      > /usr/local/bin)
 #
 # The first time you actually run `zax-shell`, it will prompt you to install
-# brew packages (tmux, acli, gh, jira-cli, nvim) and walk you through OAuth /
-# token setup. Nothing system-wide happens in this installer.
+# brew packages (tmux, acli, gh, nvim) and walk you through OAuth.
+# Nothing system-wide happens in this installer.
 
 set -euo pipefail
 
@@ -115,5 +115,5 @@ echo
 ok "설치 완료. 다음 명령으로 시작하세요:"
 echo "    zax-shell"
 echo
-echo "첫 실행 시 brew 패키지(tmux, acli, gh, jira-cli, gh-dash, nvim)를 설치할지 묻고,"
+echo "첫 실행 시 brew 패키지(tmux, acli, gh, nvim)를 설치할지 묻고,"
 echo "Atlassian / GitHub 인증까지 안내합니다."
