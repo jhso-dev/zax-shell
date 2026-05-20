@@ -77,6 +77,12 @@ const reannotateEpicFolders = () => {
     const r = resolveEpicFolder(folders, e.key);
     e.folder = r.folder;
     e.branch = r.branch;
+    // Pre-set worktreePath for main-merged epics so refreshArtifactsFor
+    // works on first call. Branch-only epics still need select-epic to
+    // materialize their dedicated worktree.
+    if (r.folder && !r.branch && mainWorktreePath) {
+      e.worktreePath = mainWorktreePath;
+    }
   };
   for (const e of state.epics) apply(e);
   if (state.epicSearch) for (const e of state.epicSearch.results) apply(e);
@@ -199,6 +205,7 @@ const refreshAllEpics = async (announce = true) => {
       const r = resolveEpicFolder(folders, e.key);
       e.folder = r.folder;
       e.branch = r.branch;
+      if (r.folder && !r.branch && mainWorktreePath) e.worktreePath = mainWorktreePath;
     }
     state.epics = epics;
     state.jiraStatus = 'ok';
@@ -252,7 +259,14 @@ const handleEvent = (ev: Event) => {
       // Non-branch epic anchors to the shared main worktree, not the user's
       // own working tree (which may be on any feat branch).
       const root = mainWorktreePath ?? cfg.productHubPath;
-      if (epic) epic.worktreePath = root;
+      if (epic) {
+        epic.worktreePath = root;
+        // Re-scan now that worktreePath is set. The first refreshArtifactsFor
+        // at the top of this handler ran before this assignment and saw an
+        // undefined worktreePath, so it fell back to the user's productHubPath
+        // (which usually doesn't contain the epic) and returned an empty list.
+        refreshArtifactsFor(ev.epicKey);
+      }
 
       const epicCwd = epic?.folder ? join(root, 'epics', epic.folder) : null;
       const epicCwdExists = epicCwd ? existsSync(epicCwd) : false;
@@ -364,6 +378,7 @@ const handleEvent = (ev: Event) => {
           const r = resolveEpicFolder(folders, e.key);
           e.folder = r.folder;
           e.branch = r.branch;
+          if (r.folder && !r.branch && mainWorktreePath) e.worktreePath = mainWorktreePath;
         }
         state.epicSearch = { query: q, status: 'ok', results };
         toast('success', `🔍 "${q}" — ${results.length}건`);
