@@ -141,9 +141,18 @@ const refreshHealth = (): void => {
   publish();
 };
 
+// In-flight flags collapse rapid-fire keypresses into a single run so
+// concurrent `r`s don't double-fetch or churn the state file.
+let syncInFlight = false;
+let jiraInFlight = false;
+let switchBranchInFlight = false;
+
 const syncProductHub = async (): Promise<void> => {
+  if (syncInFlight) return;
+  syncInFlight = true;
   if (!state.productHubExists) {
     toast('error', 'product-hub 디렉토리 없음', 'hub');
+    syncInFlight = false;
     return;
   }
   toast('info', '⟳ origin fetch + main worktree 갱신…', 'hub');
@@ -168,10 +177,13 @@ const syncProductHub = async (): Promise<void> => {
     toast('error', `main worktree 갱신 실패: ${(err as Error).message.slice(0, 80)}`, 'hub');
   } finally {
     publish();
+    syncInFlight = false;
   }
 };
 
 const refreshAllEpics = async (announce = true) => {
+  if (jiraInFlight) return;
+  jiraInFlight = true;
   state.jiraStatus = 'loading';
   publish();
   try {
@@ -194,6 +206,7 @@ const refreshAllEpics = async (announce = true) => {
     if (announce) toast('error', `✗ Jira 조회 실패: ${msg}`, 'epics');
   } finally {
     publish();
+    jiraInFlight = false;
   }
 };
 
@@ -503,46 +516,48 @@ const headTimer = setInterval(() => {
 }, 1_500);
 
 async function handleSwitchBranch(epicKey: string): Promise<void> {
-  const epic = findEpic(epicKey);
-  if (!epic?.worktreePath) {
-    toast('error', `${epicKey}: worktree 없음 — 먼저 에픽 선택 필요`, 'hub');
-    return;
-  }
-  // Refresh refs first — otherwise the user sees only whatever feat/{KEY}/*
-  // refs happened to be in the last `r` snapshot. Narrow the fetch to this
-  // epic's refs so it's a few hundred ms, not several seconds.
-  toast('info', `⟳ origin/feat/${epicKey}/* fetch…`, 'hub');
+  if (switchBranchInFlight) return;
+  switchBranchInFlight = true;
   try {
-    gitQuiet(cfg.productHubPath, [
-      'fetch', '--prune', '--quiet', 'origin',
-      `+refs/heads/feat/${epicKey}/*:refs/remotes/origin/feat/${epicKey}/*`,
-    ], 15_000);
-  } catch {
-    // fall back to whatever refs are already local
-  }
-  const candidates = listBranchCandidates(cfg.productHubPath, epicKey);
-  if (candidates.length === 0) {
-    toast('warn', `${epicKey}: 전환 가능한 origin 브랜치 없음`, 'hub');
-    return;
-  }
-  const cur = currentHead(epic.worktreePath);
-  const chosen = await showBranchSwitchPopup({
-    title: epicKey,
-    current: cur,
-    candidates,
-  });
-  if (!chosen) return;
-  try {
-    switchWorktreeBranch(epic.worktreePath, chosen);
-    const local = chosen.replace(/^origin\//, '');
-    lastHeadByEpic[epicKey] = local;
-    epic.branch = /^feat\//.test(local) ? `origin/${local}` : undefined;
-    refreshArtifactsFor(epicKey);
-    attachWatcherForSelected();
-    publish();
-    toast('success', `✓ ${epicKey} · ${local} 으로 전환`, 'hub');
-  } catch (err) {
-    toast('error', `브랜치 전환 실패: ${(err as Error).message.slice(0, 80)}`, 'hub');
+    const epic = findEpic(epicKey);
+    if (!epic?.worktreePath) {
+      toast('error', `${epicKey}: worktree 없음 — 먼저 에픽 선택 필요`, 'hub');
+      return;
+    }
+    // Narrow fetch on this epic's refs only — a few hundred ms, not several seconds.
+    toast('info', `⟳ origin/feat/${epicKey}/* fetch…`, 'hub');
+    try {
+      gitQuiet(cfg.productHubPath, [
+        'fetch', '--prune', '--quiet', 'origin',
+        `+refs/heads/feat/${epicKey}/*:refs/remotes/origin/feat/${epicKey}/*`,
+      ], 15_000);
+    } catch { /* fall back to whatever refs are already local */ }
+    const candidates = listBranchCandidates(cfg.productHubPath, epicKey);
+    if (candidates.length === 0) {
+      toast('warn', `${epicKey}: 전환 가능한 origin 브랜치 없음`, 'hub');
+      return;
+    }
+    const cur = currentHead(epic.worktreePath);
+    const chosen = await showBranchSwitchPopup({
+      title: epicKey,
+      current: cur,
+      candidates,
+    });
+    if (!chosen) return;
+    try {
+      switchWorktreeBranch(epic.worktreePath, chosen);
+      const local = chosen.replace(/^origin\//, '');
+      lastHeadByEpic[epicKey] = local;
+      epic.branch = /^feat\//.test(local) ? `origin/${local}` : undefined;
+      refreshArtifactsFor(epicKey);
+      attachWatcherForSelected();
+      publish();
+      toast('success', `✓ ${epicKey} · ${local} 으로 전환`, 'hub');
+    } catch (err) {
+      toast('error', `브랜치 전환 실패: ${(err as Error).message.slice(0, 80)}`, 'hub');
+    }
+  } finally {
+    switchBranchInFlight = false;
   }
 }
 

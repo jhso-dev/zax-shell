@@ -107,18 +107,30 @@ export async function getCliEpics(jql: string): Promise<Epic[]> {
   return parseEpics(out);
 }
 
+// Whitespace-collapse and drop any character that's not a safe alphanum,
+// CJK letter, hyphen, underscore, period, or space. Without this, Lucene
+// regex metachars (`* + ? . \ ^ $ { } ( ) | [ ]`) inside the `~` operator
+// could trigger expensive regex evaluation server-side or just produce
+// "unbalanced parens" parse errors. Whitelist > blacklist for safety.
+function sanitizeQuery(raw: string): string {
+  return raw
+    .replace(/[^\p{L}\p{N}\-_. ]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function buildSearchJql(query: string): string {
-  const q = query.trim();
-  const escaped = q.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const q = sanitizeQuery(query);
   const keyMatch = /^([A-Z][A-Z0-9]+)-(\d+)$/.exec(q);
   // Direct key match is much faster than Lucene `text ~`.
   const where = keyMatch
-    ? `(key = "${q}" OR text ~ "${escaped}")`
-    : `(summary ~ "${escaped}" OR description ~ "${escaped}" OR text ~ "${escaped}")`;
+    ? `(key = "${q}" OR text ~ "${q}")`
+    : `(summary ~ "${q}" OR description ~ "${q}" OR text ~ "${q}")`;
   return `issuetype = 에픽 AND ${where} ORDER BY updated DESC`;
 }
 
 export async function searchCliEpics(query: string, limit = 50): Promise<Epic[]> {
+  if (!sanitizeQuery(query)) return [];
   const cfg = getCfg();
   const jql = buildSearchJql(query);
   const args = ['jira', cfg.resource, 'search', '--jql', jql, '--json'];
