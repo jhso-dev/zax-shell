@@ -1,23 +1,31 @@
 /**
  * Centered tmux popup for picking a branch to switch a worktree to.
  *
- * Inputs (env vars set by daemon):
- *   ZAX_BRANCH_TITLE   — first line of header, e.g. "HGNN-13115"
- *   ZAX_BRANCH_CURRENT — currently checked-out ref (highlighted in list)
- *   ZAX_BRANCH_LIST    — newline-separated candidate refs
- *   ZAX_BRANCH_OUT     — absolute path; popup writes the chosen ref here
+ * tmux popups don't inherit our spawn() env (the tmux server has its
+ * own), so inputs are read from a fixed file path the daemon writes
+ * just before opening the popup.
  */
 
-import { writeFileSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
+
+const STATE_DIR = process.env.ZAX_SHELL_STATE_DIR
+  ?? join(homedir(), '.zax-shell', 'state');
+const IN_FILE  = join(STATE_DIR, 'branch-input.json');
+const OUT_FILE = join(STATE_DIR, 'branch-choice.txt');
+
+interface Inputs { title: string; current: string; candidates: string[] }
+
+function loadInputs(): Inputs {
+  try { return JSON.parse(readFileSync(IN_FILE, 'utf8')) as Inputs; }
+  catch { return { title: '', current: '', candidates: [] }; }
+}
+
+const { title, current, candidates: items } = loadInputs();
 
 const out = process.stdout;
 const inp = process.stdin;
-
-const title    = process.env.ZAX_BRANCH_TITLE   ?? '';
-const current  = process.env.ZAX_BRANCH_CURRENT ?? '';
-const listEnv  = process.env.ZAX_BRANCH_LIST    ?? '';
-const outFile  = process.env.ZAX_BRANCH_OUT     ?? '';
-const items    = listEnv.split('\n').map((s) => s.trim()).filter(Boolean);
 
 const C = {
   reset:   '\x1b[0m',
@@ -43,26 +51,33 @@ function render(): void {
   out.write(`  ${C.title}브랜치 전환  ·  ${title}${C.reset}\n`);
   if (current) out.write(`  ${C.dim}현재:${C.reset} ${C.cur}${current}${C.reset}\n`);
   out.write('\n');
-  items.forEach((r, i) => {
-    const isCur = r === current;
-    const marker = i === cursor ? `${C.arrow}▶${C.reset} ` : '  ';
-    const tag = isCur ? `${C.cur}●${C.reset} ` : '  ';
-    const text = i === cursor ? `${C.active} ${r} ${C.reset}` : r;
-    out.write(`  ${marker}${tag}${text}\n`);
-  });
+  if (items.length === 0) {
+    out.write(`  ${C.dim}(후보 없음 — origin/feat/${title}/* 가 없습니다)${C.reset}\n`);
+  } else {
+    items.forEach((r, i) => {
+      const isCur = r === current;
+      const marker = i === cursor ? `${C.arrow}▶${C.reset} ` : '  ';
+      const tag = isCur ? `${C.cur}●${C.reset} ` : '  ';
+      const text = i === cursor ? `${C.active} ${r} ${C.reset}` : r;
+      out.write(`  ${marker}${tag}${text}\n`);
+    });
+  }
   out.write('\n');
   out.write(`  ${C.dim}↑↓  ·  Enter 선택  ·  q / Esc 취소${C.reset}\n`);
 }
 
+function ensureDir(): void {
+  if (!existsSync(dirname(OUT_FILE))) mkdirSync(dirname(OUT_FILE), { recursive: true });
+}
+
 function commit(ref: string): never {
-  try {
-    if (outFile) writeFileSync(outFile, ref, 'utf8');
-  } catch {}
+  ensureDir();
+  try { writeFileSync(OUT_FILE, ref, 'utf8'); } catch {}
   process.exit(0);
 }
 
 function cancel(): never {
-  try { if (outFile) unlinkSync(outFile); } catch {}
+  try { unlinkSync(OUT_FILE); } catch {}
   process.exit(1);
 }
 

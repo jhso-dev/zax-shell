@@ -284,15 +284,15 @@ export function showBranchSwitchPopup(
   opts: { title: string; current: string; candidates: string[] },
 ): Promise<string | null> {
   const entry = join(here, '..', 'branch-switch-popup.ts');
+  // tmux popups don't inherit env from our spawn() call (the tmux server
+  // already has its own env), so we shuttle inputs through files in
+  // STATE_DIR — popup picks them up by fixed path.
+  const inFile  = join(STATE_DIR, 'branch-input.json');
   const outFile = join(STATE_DIR, 'branch-choice.txt');
+  if (!existsSync(STATE_DIR)) mkdirSync(STATE_DIR, { recursive: true });
   try { unlinkSync(outFile); } catch {}
-  const env = {
-    ...process.env,
-    ZAX_BRANCH_TITLE:   opts.title,
-    ZAX_BRANCH_CURRENT: opts.current,
-    ZAX_BRANCH_LIST:    opts.candidates.join('\n'),
-    ZAX_BRANCH_OUT:     outFile,
-  };
+  writeFileSync(inFile, JSON.stringify(opts), 'utf8');
+
   return withSuspendedNav(() => new Promise<string | null>((resolve) => {
     const child = spawn('tmux', [
       'display-popup', '-E',
@@ -300,7 +300,7 @@ export function showBranchSwitchPopup(
       '-S', 'fg=cyan,bold',
       '-T', ' branch switch ',
       process.execPath, '--import', 'tsx', entry,
-    ], { stdio: 'inherit', env });
+    ], { stdio: 'inherit' });
     child.on('exit', () => {
       try {
         const v = readFileSync(outFile, 'utf8').trim();
