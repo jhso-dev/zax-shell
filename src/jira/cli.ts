@@ -86,10 +86,19 @@ const parseEpics = (text: string): Epic[] => {
       it?.summary ?? it?.fields?.summary ?? it?.title ?? '';
     const status: string =
       it?.status ?? it?.fields?.status?.name ?? it?.statusName ?? '';
-    const url: string | undefined = it?.url ?? it?.self ?? undefined;
-    return { key, summary, status, url };
+    return { key, summary, status, url: jiraBrowseUrl(key) };
   }).filter((e: Epic) => e.key.length > 0);
 };
+
+// acli only exposes REST API endpoints (`self`), never the human-facing
+// /browse/ URL. Build it from the key + the Atlassian Cloud site host.
+// Override via ZAX_SHELL_JIRA_SITE if your tenant isn't zigbang.
+export function jiraBrowseUrl(key: string): string {
+  if (!key) return '';
+  const site = (process.env.ZAX_SHELL_JIRA_SITE ?? 'https://zigbang.atlassian.net')
+    .replace(/\/$/, '');
+  return `${site}/browse/${key}`;
+}
 
 export async function getCliEpics(jql: string): Promise<Epic[]> {
   const cfg = getCfg();
