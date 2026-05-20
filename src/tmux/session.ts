@@ -279,35 +279,44 @@ export function showHelpPopup(): Promise<void> {
   }));
 }
 
+/** Same rationale as showGhDashPopup — new window, not popup, for stability. */
 export function showJiraDetailPopup(epicKey: string): Promise<void> {
-  return withSuspendedNav(() => new Promise<void>((resolve) => {
-    const child = spawn('tmux', [
-      'display-popup', '-E',
-      '-w', '90%', '-h', '90%',
-      '-S', 'fg=cyan,bold',
-      '-T', ` Jira · ${epicKey} `,
-      '--', 'jira', 'issue', 'view', epicKey,
-    ], { stdio: 'inherit' });
-    child.on('exit', () => resolve());
-    child.on('error', () => resolve());
-  }));
+  return new Promise((resolve) => {
+    const shellCmd = `jira issue view ${shellQuote(epicKey)}; ` +
+                     `echo; echo '(아무 키나 누르면 창이 닫힙니다)'; read -n1`;
+    try {
+      execFileSync('tmux', [
+        'new-window', '-n', `jira · ${epicKey}`,
+        'bash', '-lc', shellCmd,
+      ], { stdio: 'ignore' });
+    } catch { /* ignore */ }
+    resolve();
+  });
 }
 
+/**
+ * gh-dash opens in a new tmux window (not a popup) for stability. A popup
+ * closes the moment its embedded command exits, so any stray keystroke that
+ * gh-dash interprets as quit would visually "kill the popup" — confusing
+ * UX. A window survives gh-dash quitting and the user closes it explicitly.
+ * Switch back to the cockpit window with `Ctrl-B 0` (or click any pane).
+ */
 export function showGhDashPopup(epicKey: string, configPath: string,
                                 cwd: string): Promise<void> {
-  return withSuspendedNav(() => new Promise<void>((resolve) => {
-    const child = spawn('tmux', [
-      'display-popup', '-E',
-      '-w', '90%', '-h', '90%',
-      '-S', 'fg=cyan,bold',
-      '-T', ` GitHub · ${epicKey} `,
-      '-d', cwd,
-      '--', 'gh', 'dash', '--config', configPath,
-    ], { stdio: 'inherit' });
-    child.on('exit', () => resolve());
-    child.on('error', () => resolve());
-  }));
+  return new Promise((resolve) => {
+    const shellCmd = `cd ${shellQuote(cwd)} && gh dash --config ${shellQuote(configPath)}; ` +
+                     `echo; echo '(gh-dash 종료됨. 아무 키나 누르면 창이 닫힙니다)'; read -n1`;
+    try {
+      execFileSync('tmux', [
+        'new-window', '-n', `gh · ${epicKey}`,
+        'bash', '-lc', shellCmd,
+      ], { stdio: 'ignore' });
+    } catch { /* ignore */ }
+    resolve();
+  });
 }
+
+function shellQuote(s: string): string { return `'${s.replace(/'/g, `'\\''`)}'`; }
 
 // ── pane navigation bindings ──────────────────────────────────────────────
 // Tab / Ctrl-T / Alt-* cycle and resize panes. While a popup is open we

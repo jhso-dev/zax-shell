@@ -1,6 +1,6 @@
 {
   "name": "zax-shell",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "ZAX cockpit — Jira epics, product-hub artifacts, Claude Code sessions in one tmux-driven TUI.",
   "type": "module",
   "author": "jhso <jhso@zigbang.com>",
