@@ -511,6 +511,18 @@ async function handleSwitchBranch(epicKey: string): Promise<void> {
     toast('error', `${epicKey}: worktree 없음 — 먼저 에픽 선택 필요`, 'hub');
     return;
   }
+  // Refresh refs first — otherwise the user sees only whatever feat/{KEY}/*
+  // refs happened to be in the last `r` snapshot. Narrow the fetch to this
+  // epic's refs so it's a few hundred ms, not several seconds.
+  toast('info', `⟳ origin/feat/${epicKey}/* fetch…`, 'hub');
+  try {
+    execFileSync('git', [
+      'fetch', '--prune', '--quiet', 'origin',
+      `+refs/heads/feat/${epicKey}/*:refs/remotes/origin/feat/${epicKey}/*`,
+    ], { cwd: cfg.productHubPath, stdio: ['ignore', 'ignore', 'pipe'], timeout: 15_000 });
+  } catch {
+    // fall back to whatever refs are already local
+  }
   const candidates = listBranchCandidates(cfg.productHubPath, epicKey);
   if (candidates.length === 0) {
     toast('warn', `${epicKey}: 전환 가능한 origin 브랜치 없음`, 'hub');
