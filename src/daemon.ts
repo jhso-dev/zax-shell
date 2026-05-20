@@ -384,6 +384,16 @@ const prefs = loadPrefs();
 // just stashing the key would leave the right pane empty.
 publish();
 
+// Force the dashboard pane back to a fixed 3-row height. Called on a
+// short interval AND immediately after every layout change so the user
+// never sees a resized dashboard.
+function pinDashboardHeight(): void {
+  try {
+    execFileSync('tmux', ['resize-pane', '-t', `${cfg.tmuxSession}:0.0`, '-y', '3'],
+      { stdio: ['ignore', 'ignore', 'ignore'] });
+  } catch {}
+}
+
 let layoutRestoreAttempts = 0;
 const tryRestoreLayout = () => {
   // Re-read prefs each attempt: cli.ts may have wiped tmuxLayout right
@@ -391,10 +401,14 @@ const tryRestoreLayout = () => {
   const cur = loadPrefs();
   if (!cur.tmuxLayout) return;
   layoutRestoreAttempts++;
-  if (applyLayout(cfg.tmuxSession, cur.tmuxLayout)) return;
+  if (applyLayout(cfg.tmuxSession, cur.tmuxLayout)) {
+    pinDashboardHeight();   // restored layout may have had a non-3 dashboard
+    return;
+  }
   if (layoutRestoreAttempts < 10) setTimeout(tryRestoreLayout, 500);
 };
 setTimeout(tryRestoreLayout, 400);
+pinDashboardHeight();   // pin immediately too, in case there's nothing to restore
 
 // Re-apply pane titles after shells have finished startup (they emit OSC 2
 // that overrides our titles). Multiple delays cover slow .zshrc loads.
@@ -404,10 +418,23 @@ setTimeout(applyPaneLabels, 4000);
 
 // Layout-save IS a poll, but it's a free local read (tmux list-windows) with
 // no API call. Kept so resize gestures persist without user action.
+//
+// We refuse to persist any layout that has the dashboard pane at a non-3
+// height — that's our invariant, and saving a stale one would only resurrect
+// it on the next startup before the timer can pin it again.
+function dashboardIsPinned(): boolean {
+  try {
+    const h = execFileSync('tmux',
+      ['display-message', '-t', `${cfg.tmuxSession}:0.0`, '-p', '#{pane_height}'],
+      { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    return h === '3';
+  } catch { return true; }   // can't read → don't block save
+}
+
 let lastSavedLayout = prefs.tmuxLayout ?? '';
 const layoutSaveTimer = setInterval(() => {
   const cur = captureLayout(cfg.tmuxSession);
-  if (cur && cur !== lastSavedLayout) {
+  if (cur && cur !== lastSavedLayout && dashboardIsPinned()) {
     lastSavedLayout = cur;
     savePrefs({ tmuxLayout: cur });
   }
@@ -447,15 +474,10 @@ const tmuxTimer = setInterval(() => {
   }
 }, 5_000);
 
-// Dashboard height stays pinned at 3 rows. Without this, every Alt-=/-
-// drag of the vertical divider also pushes the dashboard around — we
-// re-assert the size cheaply on a slow timer.
-const dashboardTimer = setInterval(() => {
-  try {
-    execFileSync('tmux', ['resize-pane', '-t', `${cfg.tmuxSession}:0.0`, '-y', '3'],
-      { stdio: ['ignore', 'ignore', 'ignore'] });
-  } catch {}
-}, 2_000);
+// Pin the dashboard height aggressively (500ms). Cheap local tmux call —
+// no-op when it's already 3 — and tight enough that even a mouse-drag
+// resize bounces back before the user can let go of the mouse button.
+const dashboardTimer = setInterval(pinDashboardHeight, 500);
 
 // Watch the selected epic's worktree HEAD. If Claude (or anything else)
 // `git switch`es it underneath us, refresh artifacts + epic.branch so the
