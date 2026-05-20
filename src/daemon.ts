@@ -17,6 +17,7 @@ import { startWatcher } from './product-hub/watch.js';
 import { computeDashboard, annotateArtifactStates } from './workflow/drift.js';
 import { respawnRightPane, notifyRightPane, captureLayout, applyLayout, applyPaneLabels, showQuitConfirm, showHelpPopup, showBranchSwitchPopup } from './tmux/session.js';
 import { pickViewer } from './viewer.js';
+import { gitQuiet } from './util/git.js';
 
 const cfg = loadConfig();
 const PID_FILE = join(STATE_DIR, 'daemon.pid');
@@ -148,13 +149,9 @@ const syncProductHub = async (): Promise<void> => {
   toast('info', '⟳ origin fetch + main worktree 갱신…', 'hub');
   // --prune: drop refs deleted on origin; --force: accept non-ff updates
   // on force-pushed feat branches.
-  const fetchArgs = ['fetch', '--prune', '--force', '--quiet', 'origin'];
   try {
-    execFileSync('git', fetchArgs, {
-      cwd: cfg.productHubPath,
-      stdio: ['ignore', 'ignore', 'pipe'],
-      timeout: 60_000,
-    });
+    gitQuiet(cfg.productHubPath,
+      ['fetch', '--prune', '--force', '--quiet', 'origin'], 60_000);
   } catch (err) {
     const msg = (err as Error).message.split('\n').slice(0, 2).join(' ').slice(0, 100);
     toast('warn', `일부 ref fetch 실패 (계속 진행): ${msg}`, 'hub');
@@ -516,10 +513,10 @@ async function handleSwitchBranch(epicKey: string): Promise<void> {
   // epic's refs so it's a few hundred ms, not several seconds.
   toast('info', `⟳ origin/feat/${epicKey}/* fetch…`, 'hub');
   try {
-    execFileSync('git', [
+    gitQuiet(cfg.productHubPath, [
       'fetch', '--prune', '--quiet', 'origin',
       `+refs/heads/feat/${epicKey}/*:refs/remotes/origin/feat/${epicKey}/*`,
-    ], { cwd: cfg.productHubPath, stdio: ['ignore', 'ignore', 'pipe'], timeout: 15_000 });
+    ], 15_000);
   } catch {
     // fall back to whatever refs are already local
   }

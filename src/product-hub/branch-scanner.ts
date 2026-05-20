@@ -1,14 +1,8 @@
-import { execFileSync } from 'node:child_process';
+import { gitOut } from '../util/git.js';
 
 const STAGE_RANK: Record<string, number> = {
   'test-case': 4, 'spec': 3, 'architecture': 2, 'prd': 1,
 };
-
-// core.quotepath=false: keep UTF-8 paths raw so 한글 폴더가 octal escape로 새지 않는다.
-const gitOut = (cwd: string, args: string[]): string =>
-  execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
-    cwd, stdio: ['ignore', 'pipe', 'pipe'], timeout: 8000,
-  }).toString();
 
 export function findFeatureBranches(productHubPath: string, epicKey: string): string[] {
   try {

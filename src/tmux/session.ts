@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { STATE_DIR } from '../ipc/state.js';
+import { shellQuote } from '../util/shell.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PANE_ENTRY = join(here, '..', 'pane.tsx');
@@ -14,11 +15,8 @@ const NODE_BIN = process.execPath;
  * matters because Ink's `useInput` puts stdin into raw mode and a double-
  * process chain breaks key forwarding (arrow keys stop working).
  */
-const paneCmd = (paneName: 'dashboard' | 'epics' | 'artifacts'): string => {
-  // Shell-quote each piece because tmux runs this through a shell.
-  const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
-  return `${q(NODE_BIN)} --import tsx ${q(PANE_ENTRY)} --pane=${paneName}`;
-};
+const paneCmd = (paneName: 'dashboard' | 'epics' | 'artifacts'): string =>
+  `${shellQuote(NODE_BIN)} --import tsx ${shellQuote(PANE_ENTRY)} --pane=${paneName}`;
 
 const RIGHT_PANE_FILE = join(STATE_DIR, 'right-pane-id');
 const LABELS_FILE = join(STATE_DIR, 'pane-labels.json');
@@ -206,11 +204,6 @@ export function killSession(sessionName: string): void {
   tmuxQuiet(['kill-session', '-t', sessionName]);
 }
 
-/**
- * Render a centered, modal-style confirmation popup floating above the
- * cockpit. Resolves true (kill confirmed) / false (cancelled). The popup
- * grabs focus until the user picks Y / Enter (yes) or N / Esc (no).
- */
 function withSuspendedNav<T>(spawnPopup: () => Promise<T>): Promise<T> {
   suspendNavBindings();
   return spawnPopup().finally(() => resumeNavBindings());

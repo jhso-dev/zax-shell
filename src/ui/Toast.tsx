@@ -4,9 +4,8 @@ import type { Toast as ToastT } from '../ipc/state.js';
 
 interface Props {
   toast: ToastT | undefined;
-  /** Hide after N ms since createdAt. */
   ttlMs?: number;
-  /** Only show toasts originating in this pane (or global toasts with no pane). */
+  /** Render only toasts tagged with this pane (undefined = global). */
   acceptPane?: 'epics' | 'hub';
 }
 

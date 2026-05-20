@@ -1,6 +1,6 @@
 {
   "name": "zax-shell",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "ZAX cockpit — Jira epics, product-hub artifacts, Claude Code sessions in one tmux-driven TUI.",
   "type": "module",
   "author": "jhso <jhso@zigbang.com>",
@@ -33,7 +33,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
     "dev": "tsx watch src/cli.ts",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",

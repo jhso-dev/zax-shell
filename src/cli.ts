@@ -10,7 +10,6 @@ import { checkDeps } from './preflight.js';
 import { autoInstall, runAuth } from './installer.js';
 import { checkLatestVersion, runUpgrade } from './update-check.js';
 import { ensureProductHubClone } from './product-hub/locate.js';
-import { migrateLegacyLayout } from './migration.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DAEMON_ENTRY = join(here, 'daemon.ts');
@@ -172,10 +171,6 @@ const promptUpdateAndMaybeUpgrade = async (): Promise<void> => {
 };
 
 const main = async () => {
-  // One-shot: pull legacy ~/.cache/zax-shell + ~/.config/zax-shell into
-  // the unified ~/.zax-shell/{state,config}/ layout. No-op after that.
-  migrateLegacyLayout();
-
   const args = process.argv.slice(2);
 
   if (args.includes('--help') || args.includes('-h')) { usage(); return; }

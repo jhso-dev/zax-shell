@@ -95,7 +95,3 @@ export function runUpgrade(installDir: string): UpgradeResult {
 
   return { ok: true, message: '업데이트 완료' };
 }
-
-export function clearUpdateCache(): void {
-  writeCache({ lastCheckedAt: 0, latestVersion: null });
-}

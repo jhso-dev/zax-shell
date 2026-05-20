@@ -5,13 +5,10 @@ export interface DepCheck {
   required: boolean;
   installed: boolean;
   version?: string;
-  /** Steps the auto-installer should run. */
   install: InstallStep[];
-  /** Optional doc URL. */
   doc?: string;
-  /** True if this CLI requires browser-based login after install. */
+  /** Whether the tool needs a post-install login (`acli auth login`, ...). */
   needsAuth?: boolean;
-  /** Short description shown to the user before installing. */
   blurb?: string;
 }
 

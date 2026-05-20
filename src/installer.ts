@@ -2,13 +2,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import readline from 'node:readline';
 import type { DepCheck, InstallStep } from './preflight.js';
 import { ensureNvimConfig, bootstrapNvimPlugins } from './nvim-config.js';
-
-const has = (bin: string): boolean => {
-  try {
-    execFileSync('which', [bin], { stdio: ['ignore', 'ignore', 'ignore'] });
-    return true;
-  } catch { return false; }
-};
+import { hasBin as has } from './util/shell.js';
 
 const ask = (q: string, defaultYes = true): Promise<boolean> => {
   return new Promise((resolve) => {

@@ -1,28 +1,18 @@
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { gitQuiet, gitOut } from '../util/git.js';
 
 const WORKTREES_ROOT = process.env.ZAX_SHELL_WORKTREES_DIR
   ?? join(homedir(), '.zax-shell', 'state', 'worktrees');
 
 const MAIN_WT = join(WORKTREES_ROOT, '_main');
 
-const gitQuiet = (cwd: string, args: string[]): void => {
-  execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
-    cwd, stdio: ['ignore', 'ignore', 'pipe'], timeout: 30_000,
-  });
-};
-
 // Detect "master" vs "main" — zigbang product-hub uses master, others use main.
 function defaultBranchRef(productHubPath: string): string {
   for (const ref of ['origin/master', 'origin/main']) {
-    try {
-      execFileSync('git', ['rev-parse', '--verify', ref], {
-        cwd: productHubPath, stdio: 'ignore',
-      });
-      return ref;
-    } catch {}
+    try { gitQuiet(productHubPath, ['rev-parse', '--verify', ref]); return ref; }
+    catch {}
   }
   return 'origin/HEAD';
 }
@@ -64,11 +54,6 @@ export function ensureWorktree(productHubPath: string,
   }
   return wt;
 }
-
-const gitOut = (cwd: string, args: string[]): string =>
-  execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
-    cwd, stdio: ['ignore', 'pipe', 'pipe'], timeout: 8000,
-  }).toString();
 
 /**
  * Origin refs that make sense as branches for a given epic.
