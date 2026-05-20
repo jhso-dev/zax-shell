@@ -10,6 +10,7 @@ import { checkDeps } from './preflight.js';
 import { autoInstall, runAuth } from './installer.js';
 import { injectJiraTokenEnv } from './jira-token.js';
 import { checkLatestVersion, runUpgrade } from './update-check.js';
+import { ensureProductHubClone } from './product-hub/locate.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DAEMON_ENTRY = join(here, 'daemon.ts');
@@ -248,6 +249,13 @@ const main = async () => {
   }
 
   const cfg = loadConfig();
+
+  // Ensure zax-shell's own product-hub clone exists. Default location is
+  // ~/.cache/zax-shell/repo; user can override via --set productHubPath=<path>
+  // if they want zax-shell to reuse an existing checkout.
+  if (!ensureProductHubClone(cfg.productHubPath)) {
+    process.exit(2);
+  }
 
   startDaemon();
 

@@ -124,6 +124,9 @@ zax-shell (CLI)
 
 ## 자주 묻는 것
 
+**Q. product-hub를 따로 클론해야 하나요?**
+아니요. zax-shell이 첫 실행 시 **자체 클론**을 `~/.cache/zax-shell/repo` 에 자동으로 만듭니다. 사용자가 따로 갖고 있는 `~/dev/product-hub` 같은 워킹 트리는 zax-shell이 절대 안 건드립니다. 기존 클론을 재사용하고 싶으면 `zax-shell --set productHubPath=/path/to/your/product-hub`.
+
 **Q. product-hub working tree가 dirty/다른 브랜치인데 zax-shell이 동작하나요?**
 네. zax-shell은 `_main` worktree(별도 detached 체크아웃)를 사용해서 사용자 워킹 트리에 무관하게 동작합니다.
 
