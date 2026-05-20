@@ -1,0 +1,62 @@
+{
+  "name": "zax-shell",
+  "version": "0.1.0",
+  "description": "ZAX cockpit — Jira epics, product-hub artifacts, Claude Code sessions in one tmux-driven TUI.",
+  "type": "module",
+  "author": "jhso <jhso@zigbang.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/jhso-dev/zax-shell#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhso-dev/zax-shell.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jhso-dev/zax-shell/issues"
+  },
+  "keywords": [
+    "zax",
+    "jira",
+    "tmux",
+    "tui",
+    "claude-code",
+    "product-hub"
+  ],
+  "bin": {
+    "zax-shell": "./bin/zax-shell",
+    "zax-pane": "./bin/zax-pane"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/cli.ts",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node bin/zax-shell"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.1",
+    "fast-glob": "^3.3.2",
+    "gray-matter": "^4.0.3",
+    "ink": "^5.0.1",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@types/react": "^18.3.11",
+    "@vitest/ui": "^4.1.6",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^4.1.6"
+  }
+}
