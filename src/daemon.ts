@@ -330,9 +330,10 @@ const handleEvent = (ev: Event) => {
     if (!hasGhDash())  { toast('error', 'gh-dash 미설치 — gh extension install dlvhdr/gh-dash'); return; }
     try {
       const cfg2 = writeGhDashConfig(ev.epicKey);
-      const epic = findEpic(ev.epicKey);
-      const cwd = epic?.worktreePath ?? cfg.productHubPath;
-      void showGhDashPopup(ev.epicKey, cfg2, cwd);
+      // Use STATE_DIR (non-git) as cwd so gh-dash doesn't latch onto the
+      // worktree's git remote as a default repository — our filters are
+      // org-scoped and span every repo touching this epic.
+      void showGhDashPopup(ev.epicKey, cfg2, STATE_DIR);
     } catch (err) {
       toast('error', `gh-dash 실행 실패: ${(err as Error).message.slice(0, 80)}`);
     }

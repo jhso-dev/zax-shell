@@ -3,6 +3,10 @@ import { dirname, join } from 'node:path';
 import { STATE_DIR } from './ipc/state.js';
 
 const CONFIG_PATH = join(STATE_DIR, 'gh-dash.yml');
+// zax workflow spans many repos (product-hub for docs, zigbang_korean /
+// honggangnono / ... for actual code). All filters are org-scoped so the
+// dashboard never gets capped by gh-dash's "default repo from cwd remote".
+const ORG = process.env.ZAX_SHELL_GH_ORG ?? 'zigbang';
 
 const yamlEscape = (s: string): string => s.replace(/"/g, '\\"');
 
@@ -10,29 +14,29 @@ export function writeGhDashConfig(epicKey: string): string {
   const key = yamlEscape(epicKey);
   const yaml = `prSections:
   - title: "${key} PR"
-    filters: "in:title,body ${key}"
-  - title: "내가 작성한 PR (열림)"
-    filters: "is:open author:@me"
-  - title: "내 리뷰 대기"
-    filters: "is:open review-requested:@me"
+    filters: "org:${ORG} in:title,body ${key}"
+  - title: "내 PR (org 전체, 열림)"
+    filters: "org:${ORG} is:open author:@me"
+  - title: "내 리뷰 대기 (org 전체)"
+    filters: "org:${ORG} is:open review-requested:@me"
 
 issuesSections:
   - title: "${key} Issue"
-    filters: "in:title,body ${key}"
+    filters: "org:${ORG} in:title,body ${key}"
 
 defaults:
   preview:
     open: true
     width: 60
-  prsLimit: 20
-  issuesLimit: 20
+  prsLimit: 30
+  issuesLimit: 30
   view: prs
   layout:
     prs:
       updatedAt:
         width: 7
       repo:
-        width: 18
+        width: 28
       title:
         grow: true
 `;
