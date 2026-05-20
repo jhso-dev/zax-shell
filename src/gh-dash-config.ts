@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { writeFileSync, renameSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { STATE_DIR } from './ipc/state.js';
@@ -10,15 +11,29 @@ const ORG = process.env.ZAX_SHELL_GH_ORG ?? 'zigbang';
 
 const yamlEscape = (s: string): string => s.replace(/"/g, '\\"');
 
+// gh-dash sometimes fails to resolve @me at runtime — when one section
+// blows up the whole popup closes. Resolve the username up front and
+// inline it into the filters.
+function currentGhUser(): string | null {
+  try {
+    const out = execFileSync('gh', ['api', 'user', '--jq', '.login'],
+      { stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).toString().trim();
+    return out || null;
+  } catch { return null; }
+}
+
 export function writeGhDashConfig(epicKey: string): string {
   const key = yamlEscape(epicKey);
+  const me = currentGhUser();
+  const meSections = me ? `
+  - title: "내 PR (org 전체, 열림)"
+    filters: "org:${ORG} is:open author:${me}"
+  - title: "내 리뷰 대기 (org 전체)"
+    filters: "org:${ORG} is:open review-requested:${me}"` : '';
+
   const yaml = `prSections:
   - title: "${key} PR"
-    filters: "org:${ORG} in:title,body ${key}"
-  - title: "내 PR (org 전체, 열림)"
-    filters: "org:${ORG} is:open author:@me"
-  - title: "내 리뷰 대기 (org 전체)"
-    filters: "org:${ORG} is:open review-requested:@me"
+    filters: "org:${ORG} in:title,body ${key}"${meSections}
 
 issuesSections:
   - title: "${key} Issue"
