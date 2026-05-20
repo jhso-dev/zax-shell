@@ -227,6 +227,7 @@ const handleEvent = (ev: Event) => {
         const wt = ensureWorktree(cfg.productHubPath, ev.epicKey, epic.branch);
         epic.worktreePath = wt;
         refreshArtifactsFor(ev.epicKey);
+        attachWatcherForSelected();
         publish();
         const epicCwd = join(wt, 'epics', epic.folder);
         respawnRightPane(cfg.tmuxSession, epicCwd, claudeCmd);
@@ -240,11 +241,8 @@ const handleEvent = (ev: Event) => {
       const root = mainWorktreePath ?? cfg.productHubPath;
       if (epic) {
         epic.worktreePath = root;
-        // Re-scan now that worktreePath is set. The first refreshArtifactsFor
-        // at the top of this handler ran before this assignment and saw an
-        // undefined worktreePath, so it fell back to the user's productHubPath
-        // (which usually doesn't contain the epic) and returned an empty list.
         refreshArtifactsFor(ev.epicKey);
+        attachWatcherForSelected();
       }
 
       const epicCwd = epic?.folder ? join(root, 'epics', epic.folder) : null;
@@ -356,14 +354,27 @@ const handleEvent = (ev: Event) => {
 };
 
 const stopEvents = subscribeEvents(handleEvent);
-const stopFsWatch = state.productHubExists
-  ? startWatcher(cfg.productHubPath, () => {
-      if (state.selectedEpic) {
-        refreshArtifactsFor(state.selectedEpic);
-        publish();
-      }
-    })
-  : () => {};
+
+// File watcher follows the *selected epic's worktree*, not the user's
+// home checkout. When Claude writes new artifacts inside the worktree
+// (e.g. running /workflow prd), this picks them up and re-renders the
+// Product-Hub pane without a manual refresh. Re-attached every time the
+// selected epic changes.
+let stopFsWatch: () => void = () => {};
+function attachWatcherForSelected(): void {
+  try { stopFsWatch(); } catch {}
+  stopFsWatch = () => {};
+  if (!state.productHubExists) return;
+  const epic = state.selectedEpic ? findEpic(state.selectedEpic) : undefined;
+  const watchRoot = epic?.worktreePath ?? cfg.productHubPath;
+  stopFsWatch = startWatcher(watchRoot, () => {
+    if (state.selectedEpic) {
+      refreshArtifactsFor(state.selectedEpic);
+      publish();
+    }
+  });
+}
+attachWatcherForSelected();
 
 refreshHealth();
 
@@ -467,6 +478,7 @@ const headTimer = setInterval(() => {
   if (/^feat\//.test(head)) epic.branch = `origin/${head}`;
   else epic.branch = undefined;
   refreshArtifactsFor(epicKey);
+  attachWatcherForSelected();
   publish();
   toast('info', `→ ${epicKey} · 브랜치 변경 감지: ${head}`, 'hub');
 }, 1_500);
@@ -495,6 +507,7 @@ async function handleSwitchBranch(epicKey: string): Promise<void> {
     lastHeadByEpic[epicKey] = local;
     epic.branch = /^feat\//.test(local) ? `origin/${local}` : undefined;
     refreshArtifactsFor(epicKey);
+    attachWatcherForSelected();
     publish();
     toast('success', `✓ ${epicKey} · ${local} 으로 전환`, 'hub');
   } catch (err) {
