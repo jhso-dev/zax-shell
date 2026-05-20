@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { gitQuiet, gitOut } from '../util/git.js';
+import { ZAX_HOME } from '../util/paths.js';
 
 const WORKTREES_ROOT = process.env.ZAX_SHELL_WORKTREES_DIR
-  ?? join(homedir(), '.zax-shell', 'state', 'worktrees');
+  ?? join(ZAX_HOME, 'state', 'worktrees');
 
 const MAIN_WT = join(WORKTREES_ROOT, '_main');
 

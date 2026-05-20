@@ -1,8 +1,8 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { ZAX_HOME } from '../util/paths.js';
 
 export const STATE_DIR = process.env.ZAX_SHELL_STATE_DIR
-  ?? join(homedir(), '.zax-shell', 'state');
+  ?? join(ZAX_HOME, 'state');
 export const STATE_FILE = join(STATE_DIR, 'state.json');
 export const EVENTS_FILE = join(STATE_DIR, 'events.jsonl');
 

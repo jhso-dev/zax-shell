@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { spawn } from 'node:child_process';
+
+// Same launcher as bin/zax-shell, but sets ZAX_SHELL_DEV=1 so the child
+// uses ~/.zax-shell-dev/{state,config}/ and tmux session "zax-dev" instead
+// of the installed copy's data.
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(here, '..');
+const entry = join(repoRoot, 'src', 'cli.ts');
+
+const proc = spawn(
+  'node',
+  ['--import', 'tsx', entry, ...process.argv.slice(2)],
+  {
+    stdio: 'inherit',
+    cwd: repoRoot,
+    env: { ...process.env, ZAX_SHELL_DEV: '1' },
+  },
+);
+proc.on('exit', (code) => process.exit(code ?? 0));

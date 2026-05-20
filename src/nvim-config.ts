@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
+import { ZAX_HOME } from './util/paths.js';
 
-export const NVIM_CONFIG_DIR = join(homedir(), '.zax-shell', 'config', 'nvim');
+export const NVIM_CONFIG_DIR = join(ZAX_HOME, 'config', 'nvim');
 export const NVIM_INIT_FILE = join(NVIM_CONFIG_DIR, 'init.lua');
 
 /**

@@ -1,6 +1,6 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { ZAX_HOME, DEFAULT_TMUX_SESSION } from '../util/paths.js';
 
 export interface JiraCliCfg {
   /** Path to the acli binary (default: 'acli'). */
@@ -24,22 +24,22 @@ export interface Config {
 }
 
 const CONFIG_DIR = process.env.ZAX_SHELL_CONFIG_DIR
-  ?? join(homedir(), '.zax-shell', 'config');
+  ?? join(ZAX_HOME, 'config');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
-// zax-shell maintains its own product-hub clone under ~/.zax-shell so the
-// user's working tree (wherever they keep it) is never touched. Overridable
-// in config.json or via `zax-shell --set productHubPath=<path>`.
+// zax-shell maintains its own product-hub clone under ZAX_HOME so the user's
+// working tree (wherever they keep it) is never touched. Overridable in
+// config.json or via `zax-shell --set productHubPath=<path>`.
 const DEFAULT_PRODUCT_HUB = process.env.ZAX_SHELL_STATE_DIR
   ? join(process.env.ZAX_SHELL_STATE_DIR, 'repo')
-  : join(homedir(), '.zax-shell', 'state', 'repo');
+  : join(ZAX_HOME, 'state', 'repo');
 
 const DEFAULTS: Config = {
   productHubPath: DEFAULT_PRODUCT_HUB,
   // zigbang Jira uses Korean issue type names ("에픽"). Tenants with English
   // names should set `jql` in config to use "Epic" instead.
   jql: 'issuetype = 에픽 AND (assignee = currentUser() OR reporter = currentUser() OR watcher = currentUser()) AND statusCategory != Done ORDER BY updated DESC',
-  tmuxSession: 'zax',
+  tmuxSession: DEFAULT_TMUX_SESSION,
   claudeBin: 'claude',
 };
 
