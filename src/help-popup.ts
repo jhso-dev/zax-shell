@@ -57,6 +57,7 @@ const SECTIONS: Section[] = [
       { keys: 'i',            label: '편집 모드 시작 (insert)' },
       { keys: 'Esc',          label: '편집 종료 → 렌더링 보기' },
       { keys: ':w / :q / :wq', label: '저장 / 닫기 / 저장 후 닫기' },
+      { keys: 'b',            label: '브랜치 전환 popup (master / feat/.../prd / spec / ...)' },
       { keys: 'o',            label: '커서 파일을 GitHub blob 페이지로 열기 (산출물 없으면 PR 검색)' },
     ],
   },

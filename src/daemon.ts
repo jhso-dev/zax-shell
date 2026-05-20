@@ -9,10 +9,13 @@ import { searchCliEpics } from './jira/cli.js';
 import { loadPrefs, savePrefs } from './ipc/ui-prefs.js';
 import { scanEpicArtifacts, listEpicFolders } from './product-hub/scanner.js';
 import { findFeatureBranches, findEpicFolderOnBranch } from './product-hub/branch-scanner.js';
-import { ensureWorktree, ensureMainWorktree, updateMainWorktree } from './product-hub/worktree.js';
+import {
+  ensureWorktree, ensureMainWorktree, updateMainWorktree,
+  listBranchCandidates, switchWorktreeBranch, currentHead,
+} from './product-hub/worktree.js';
 import { startWatcher } from './product-hub/watch.js';
 import { computeDashboard, annotateArtifactStates } from './workflow/drift.js';
-import { respawnRightPane, notifyRightPane, captureLayout, applyLayout, applyPaneLabels, showQuitConfirm, showHelpPopup } from './tmux/session.js';
+import { respawnRightPane, notifyRightPane, captureLayout, applyLayout, applyPaneLabels, showQuitConfirm, showHelpPopup, showBranchSwitchPopup } from './tmux/session.js';
 import { pickViewer } from './viewer.js';
 
 const cfg = loadConfig();
@@ -305,6 +308,8 @@ const handleEvent = (ev: Event) => {
     })();
   } else if (ev.type === 'show-help') {
     void showHelpPopup();
+  } else if (ev.type === 'switch-branch') {
+    void handleSwitchBranch(ev.epicKey);
   } else if (ev.type === 'open-browser') {
     try {
       spawn('open', [ev.url], { detached: true, stdio: 'ignore' }).unref();
@@ -363,7 +368,9 @@ const stopFsWatch = state.productHubExists
 refreshHealth();
 
 const prefs = loadPrefs();
-if (prefs.selectedEpicKey) state.selectedEpic = prefs.selectedEpicKey;
+// Intentionally not setting state.selectedEpic here. We need to trigger a
+// full select-epic flow (claude spawn, worktree refresh) after epics load —
+// just stashing the key would leave the right pane empty.
 publish();
 
 let layoutRestoreAttempts = 0;
@@ -395,7 +402,16 @@ const layoutSaveTimer = setInterval(() => {
   }
 }, 2_000);
 
-void refreshAllEpics(false);   // initial — no toast on startup
+// Initial Jira load. When it finishes, restore the previously-selected
+// epic so the right pane comes up with claude already running instead of
+// the idle banner.
+void (async () => {
+  await refreshAllEpics(false);
+  const restore = prefs.selectedEpicKey;
+  if (restore && state.epics.find((e) => e.key === restore)) {
+    handleEvent({ type: 'select-epic', epicKey: restore });
+  }
+})();
 
 // If the tmux session disappears, the daemon must exit too — otherwise it
 // outlives its UI and keeps polling Jira invisibly. Grace period covers the
@@ -420,6 +436,72 @@ const tmuxTimer = setInterval(() => {
   }
 }, 5_000);
 
+// Dashboard height stays pinned at 3 rows. Without this, every Alt-=/-
+// drag of the vertical divider also pushes the dashboard around — we
+// re-assert the size cheaply on a slow timer.
+const dashboardTimer = setInterval(() => {
+  try {
+    execFileSync('tmux', ['resize-pane', '-t', `${cfg.tmuxSession}:0.0`, '-y', '3'],
+      { stdio: ['ignore', 'ignore', 'ignore'] });
+  } catch {}
+}, 2_000);
+
+// Watch the selected epic's worktree HEAD. If Claude (or anything else)
+// `git switch`es it underneath us, refresh artifacts + epic.branch so the
+// Product-Hub pane keeps showing the right files.
+let lastHeadByEpic: Record<string, string> = {};
+const headTimer = setInterval(() => {
+  const epicKey = state.selectedEpic;
+  if (!epicKey) return;
+  const epic = findEpic(epicKey);
+  if (!epic?.worktreePath) return;
+  const head = currentHead(epic.worktreePath);
+  if (!head) return;
+  const prev = lastHeadByEpic[epicKey];
+  if (prev === undefined) { lastHeadByEpic[epicKey] = head; return; }
+  if (prev === head) return;
+  lastHeadByEpic[epicKey] = head;
+
+  // HEAD changed under us. If it's a feat branch we now anchor to that
+  // worktree's ref; if it's the default branch we drop epic.branch.
+  if (/^feat\//.test(head)) epic.branch = `origin/${head}`;
+  else epic.branch = undefined;
+  refreshArtifactsFor(epicKey);
+  publish();
+  toast('info', `→ ${epicKey} · 브랜치 변경 감지: ${head}`, 'hub');
+}, 1_500);
+
+async function handleSwitchBranch(epicKey: string): Promise<void> {
+  const epic = findEpic(epicKey);
+  if (!epic?.worktreePath) {
+    toast('error', `${epicKey}: worktree 없음 — 먼저 에픽 선택 필요`, 'hub');
+    return;
+  }
+  const candidates = listBranchCandidates(cfg.productHubPath, epicKey);
+  if (candidates.length === 0) {
+    toast('warn', `${epicKey}: 전환 가능한 origin 브랜치 없음`, 'hub');
+    return;
+  }
+  const cur = currentHead(epic.worktreePath);
+  const chosen = await showBranchSwitchPopup({
+    title: epicKey,
+    current: cur,
+    candidates,
+  });
+  if (!chosen) return;
+  try {
+    switchWorktreeBranch(epic.worktreePath, chosen);
+    const local = chosen.replace(/^origin\//, '');
+    lastHeadByEpic[epicKey] = local;
+    epic.branch = /^feat\//.test(local) ? `origin/${local}` : undefined;
+    refreshArtifactsFor(epicKey);
+    publish();
+    toast('success', `✓ ${epicKey} · ${local} 으로 전환`, 'hub');
+  } catch (err) {
+    toast('error', `브랜치 전환 실패: ${(err as Error).message.slice(0, 80)}`, 'hub');
+  }
+}
+
 let shuttingDown = false;
 async function shutdown(reason: string): Promise<void> {
   if (shuttingDown) return;
@@ -427,6 +509,8 @@ async function shutdown(reason: string): Promise<void> {
 
   clearInterval(tmuxTimer);
   clearInterval(layoutSaveTimer);
+  clearInterval(dashboardTimer);
+  clearInterval(headTimer);
 
   try {
     const finalLayout = captureLayout(cfg.tmuxSession);

@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { STATE_DIR } from '../ipc/state.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -279,6 +279,38 @@ export function showHelpPopup(): Promise<void> {
   }));
 }
 
+/** Branch picker popup. Returns the chosen ref, or null on cancel. */
+export function showBranchSwitchPopup(
+  opts: { title: string; current: string; candidates: string[] },
+): Promise<string | null> {
+  const entry = join(here, '..', 'branch-switch-popup.ts');
+  const outFile = join(STATE_DIR, 'branch-choice.txt');
+  try { unlinkSync(outFile); } catch {}
+  const env = {
+    ...process.env,
+    ZAX_BRANCH_TITLE:   opts.title,
+    ZAX_BRANCH_CURRENT: opts.current,
+    ZAX_BRANCH_LIST:    opts.candidates.join('\n'),
+    ZAX_BRANCH_OUT:     outFile,
+  };
+  return withSuspendedNav(() => new Promise<string | null>((resolve) => {
+    const child = spawn('tmux', [
+      'display-popup', '-E',
+      '-w', '70', '-h', String(Math.min(20, 6 + opts.candidates.length)),
+      '-S', 'fg=cyan,bold',
+      '-T', ' branch switch ',
+      process.execPath, '--import', 'tsx', entry,
+    ], { stdio: 'inherit', env });
+    child.on('exit', () => {
+      try {
+        const v = readFileSync(outFile, 'utf8').trim();
+        resolve(v || null);
+      } catch { resolve(null); }
+    });
+    child.on('error', () => resolve(null));
+  }));
+}
+
 // ── pane navigation bindings ──────────────────────────────────────────────
 // Tab / Ctrl-T / Alt-* cycle and resize panes. While a popup is open we
 // must *unbind* them so the embedded tool (help) gets Tab/etc. raw —
@@ -326,10 +358,13 @@ export function applyNavBindings(sessionName: string,
              'M-,', 'resize-pane', '-t', epicsId, '-L', '5']);
   tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow left column',
              'M-.', 'resize-pane', '-t', epicsId, '-R', '5']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink epics row',
-             'M--', 'resize-pane', '-t', epicsId, '-U', '3']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow epics row',
-             'M-=', 'resize-pane', '-t', epicsId, '-D', '3']);
+  // Vertical resize targets the *artifacts* pane so the divider that
+  // moves is the one between Epics ↔ Product-Hub, never the one between
+  // Dashboard ↔ Epics. Dashboard's row count stays fixed at 3.
+  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink artifacts',
+             'M--', 'resize-pane', '-t', artifactsPaneId, '-U', '3']);
+  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow artifacts',
+             'M-=', 'resize-pane', '-t', artifactsPaneId, '-D', '3']);
 }
 
 function suspendNavBindings(): void {

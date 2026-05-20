@@ -66,6 +66,10 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
   useInput((input, key) => {
     if (input === 'q') { emitEvent({ type: 'confirm-quit' }); return; }
     if (input === 'r') { emitEvent({ type: 'refresh-hub' }); return; }
+    if (input === 'b') {
+      if (state?.selectedEpic) emitEvent({ type: 'switch-branch', epicKey: state.selectedEpic });
+      return;
+    }
 
     if (input === 'o') {
       const key = state?.selectedEpic;
@@ -140,7 +144,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
           return `${state.selectedEpic}${branchTag}${cursorPart}`;
         })()}
       </Text>
-      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · o GitHub(파일/PR) · ✓ok ◐drift ⚠stale ·missing</Text>
+      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · b 브랜치 · o GitHub · ✓ok ◐drift ⚠stale</Text>
 
       {!state.selectedEpic ? (
         <Text dimColor wrap="truncate">좌측에서 에픽을 선택하세요</Text>
