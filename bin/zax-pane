@@ -4,11 +4,12 @@ import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const entry = join(here, '..', 'src', 'pane.tsx');
+const repoRoot = join(here, '..');
+const entry = join(repoRoot, 'src', 'pane.tsx');
 
 const proc = spawn(
   'node',
   ['--import', 'tsx', entry, ...process.argv.slice(2)],
-  { stdio: 'inherit' }
+  { stdio: 'inherit', cwd: repoRoot }
 );
 proc.on('exit', (code) => process.exit(code ?? 0));

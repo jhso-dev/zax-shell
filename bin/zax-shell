@@ -4,11 +4,15 @@ import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const entry = join(here, '..', 'src', 'cli.ts');
+const repoRoot = join(here, '..');
+const entry = join(repoRoot, 'src', 'cli.ts');
 
+// cwd must point at zax-shell's own root so Node can resolve the `tsx`
+// loader from this install's node_modules — otherwise Node looks in the
+// user's current working directory and fails with ERR_MODULE_NOT_FOUND.
 const proc = spawn(
   'node',
   ['--import', 'tsx', entry, ...process.argv.slice(2)],
-  { stdio: 'inherit' }
+  { stdio: 'inherit', cwd: repoRoot }
 );
 proc.on('exit', (code) => process.exit(code ?? 0));

@@ -30,12 +30,25 @@ less /tmp/zax-shell-install.sh
 bash /tmp/zax-shell-install.sh
 ```
 
+install.sh가 자동으로 처리하는 것:
+- `~/.zax-shell` 에 clone + build
+- `/usr/local/bin` (Intel) 또는 `~/.local/bin` (Apple Silicon · 기본) 에 symlink
+- PATH 에 빠져 있으면 정확한 추가 명령을 출력
+
+> Apple Silicon은 `/usr/local/bin` 이 기본적으로 없거나 권한이 없습니다. install.sh가 자동으로 `~/.local/bin` 으로 fallback하고 PATH 추가 명령을 안내합니다.
+
+`bin` 디렉토리를 직접 지정하려면:
+```bash
+ZAX_SHELL_BIN_DIR=~/bin bash /tmp/zax-shell-install.sh
+```
+
 또는 직접 clone 후 설치:
 
 ```bash
 git clone https://github.com/jhso-dev/zax-shell.git ~/.zax-shell
 cd ~/.zax-shell && npm ci && npm run build
-ln -sf ~/.zax-shell/bin/zax-shell /usr/local/bin/zax-shell
+ln -sf ~/.zax-shell/bin/zax-shell ~/.local/bin/zax-shell    # ← Apple Silicon 권장
+# 또는 ln -sf ~/.zax-shell/bin/zax-shell /usr/local/bin/zax-shell  (Intel)
 ```
 
 첫 실행 시 zax-shell이 필요한 도구(tmux, acli, gh, jira-cli, gh-dash, nvim+markview)를 자동으로 brew/gh-extension으로 설치하고 OAuth/토큰 가이드까지 끌어줍니다.

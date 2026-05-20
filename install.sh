@@ -5,7 +5,9 @@
 # What it does:
 #   1. clones (or pulls) the repo into ~/.zax-shell
 #   2. installs dependencies and builds the TypeScript sources
-#   3. symlinks the launcher into a directory on $PATH (default /usr/local/bin)
+#   3. symlinks the launcher into a directory on $PATH (auto-picks first
+#      writable from: $ZAX_SHELL_BIN_DIR > $HOMEBREW_PREFIX/bin > ~/.local/bin
+#      > /usr/local/bin)
 #
 # The first time you actually run `zax-shell`, it will prompt you to install
 # brew packages (tmux, acli, gh, jira-cli, nvim) and walk you through OAuth /
@@ -16,8 +18,6 @@ set -euo pipefail
 REPO_URL="${ZAX_SHELL_REPO_URL:-https://github.com/jhso-dev/zax-shell.git}"
 REPO_REF="${ZAX_SHELL_REF:-main}"
 INSTALL_DIR="${ZAX_SHELL_DIR:-$HOME/.zax-shell}"
-BIN_DIR="${ZAX_SHELL_BIN_DIR:-/usr/local/bin}"
-LINK_PATH="$BIN_DIR/zax-shell"
 
 info()  { printf '\033[1;36m▶\033[0m %s\n' "$*"; }
 ok()    { printf '\033[1;32m✓\033[0m %s\n' "$*"; }
@@ -31,6 +31,37 @@ command -v node >/dev/null || fail "Node.js 20+ 가 필요합니다 (brew instal
 NODE_MAJOR=$(node -p 'process.versions.node.split(".")[0]')
 [ "$NODE_MAJOR" -ge 20 ] || fail "Node.js 20 이상이 필요합니다 (현재 $(node -v))"
 command -v npm  >/dev/null || fail "npm 이 필요합니다"
+
+# ── pick a writable bin dir ──────────────────────────────────────────────
+# Apple Silicon machines often don't have /usr/local/bin at all, and never
+# have it on $PATH for the user account. Prefer ~/.local/bin (sudo-free,
+# easy to add to PATH) and fall back through likely candidates.
+pick_bin_dir() {
+  if [ -n "${ZAX_SHELL_BIN_DIR:-}" ]; then
+    mkdir -p "$ZAX_SHELL_BIN_DIR" 2>/dev/null || fail "$ZAX_SHELL_BIN_DIR 생성/쓰기 불가"
+    [ -w "$ZAX_SHELL_BIN_DIR" ] || fail "$ZAX_SHELL_BIN_DIR 에 쓰기 권한 없음"
+    echo "$ZAX_SHELL_BIN_DIR"
+    return
+  fi
+
+  local candidates=()
+  if command -v brew >/dev/null; then
+    candidates+=("$(brew --prefix 2>/dev/null)/bin")
+  fi
+  candidates+=("$HOME/.local/bin" "/usr/local/bin")
+
+  for d in "${candidates[@]}"; do
+    [ -z "$d" ] && continue
+    if [ -d "$d" ] && [ -w "$d" ]; then echo "$d"; return; fi
+  done
+
+  # nothing exists/writable — create ~/.local/bin as a safe default
+  mkdir -p "$HOME/.local/bin"
+  echo "$HOME/.local/bin"
+}
+
+BIN_DIR="$(pick_bin_dir)"
+LINK_PATH="$BIN_DIR/zax-shell"
 
 # ── repo: clone or update ────────────────────────────────────────────────
 if [ -d "$INSTALL_DIR/.git" ]; then
@@ -53,17 +84,31 @@ info "TypeScript 빌드"
 ok "빌드 완료"
 
 # ── symlink ──────────────────────────────────────────────────────────────
-if [ ! -d "$BIN_DIR" ]; then
-  mkdir -p "$BIN_DIR" 2>/dev/null || fail "$BIN_DIR 이 없거나 쓸 수 없습니다. ZAX_SHELL_BIN_DIR=<경로> 로 재실행하세요."
-fi
-
-if [ -w "$BIN_DIR" ]; then
-  ln -sf "$INSTALL_DIR/bin/zax-shell" "$LINK_PATH"
-else
-  warn "$BIN_DIR 쓰기 권한 없음 — sudo 로 symlink"
-  sudo ln -sf "$INSTALL_DIR/bin/zax-shell" "$LINK_PATH"
-fi
+ln -sf "$INSTALL_DIR/bin/zax-shell" "$LINK_PATH"
 ok "symlink: $LINK_PATH → $INSTALL_DIR/bin/zax-shell"
+
+# ── PATH hint ────────────────────────────────────────────────────────────
+# Detect whether $BIN_DIR is on the user's PATH (in this process and in
+# their shell rc). If not, print exact commands to copy/paste.
+needs_path_hint=1
+case ":$PATH:" in *":$BIN_DIR:"*) needs_path_hint=0 ;; esac
+
+if [ "$needs_path_hint" = "1" ]; then
+  shell_name=$(basename "${SHELL:-zsh}")
+  case "$shell_name" in
+    zsh)  rc="$HOME/.zshrc"  ;;
+    bash) rc="$HOME/.bashrc" ;;
+    *)    rc="$HOME/.profile" ;;
+  esac
+  echo
+  warn "$BIN_DIR 이 PATH 에 없습니다. 다음 명령으로 추가하세요:"
+  echo
+  echo "    echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> $rc"
+  echo "    source $rc"
+  echo
+  echo "  또는 이 세션에만 적용:"
+  echo "    export PATH=\"$BIN_DIR:\$PATH\""
+fi
 
 # ── done ─────────────────────────────────────────────────────────────────
 echo
