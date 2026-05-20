@@ -159,15 +159,23 @@ const syncProductHub = async (): Promise<void> => {
     return;
   }
   toast('info', '⟳ origin fetch + main worktree 갱신…');
+  // --prune: drop refs deleted on origin; --force: accept non-ff updates
+  // on force-pushed feat branches. Without --force git exits 1 with
+  // "some local refs could not be updated" and we lose the whole refresh.
+  const fetchArgs = ['fetch', '--prune', '--force', '--quiet', 'origin'];
   try {
-    // Fetch into the user's repo (read-only refs update) — never touches
-    // their working tree.
-    execFileSync('git', ['fetch', '--quiet', 'origin'], {
+    execFileSync('git', fetchArgs, {
       cwd: cfg.productHubPath,
       stdio: ['ignore', 'ignore', 'pipe'],
       timeout: 60_000,
     });
-    // Re-pin shared main worktree to latest origin/master.
+  } catch (err) {
+    // Partial fetch still updates the refs that succeeded — keep going,
+    // but tell the user something went wrong.
+    const msg = (err as Error).message.split('\n').slice(0, 2).join(' ').slice(0, 100);
+    toast('warn', `일부 ref fetch 실패 (계속 진행): ${msg}`);
+  }
+  try {
     if (!mainWorktreePath) {
       try { mainWorktreePath = ensureMainWorktree(cfg.productHubPath); } catch {}
     }
@@ -176,7 +184,7 @@ const syncProductHub = async (): Promise<void> => {
     if (state.selectedEpic) refreshArtifactsFor(state.selectedEpic);
     toast('success', '✓ 동기화 완료 — 사용자 워킹 트리 안 건드림');
   } catch (err) {
-    toast('error', `git 동기화 실패: ${(err as Error).message.slice(0, 80)}`);
+    toast('error', `main worktree 갱신 실패: ${(err as Error).message.slice(0, 80)}`);
   } finally {
     publish();
   }

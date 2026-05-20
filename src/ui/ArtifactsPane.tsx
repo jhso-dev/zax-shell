@@ -5,6 +5,7 @@ import { subscribeState, emitEvent } from '../ipc/store.js';
 import type { SharedState, Artifact } from '../ipc/state.js';
 import { useCursorScroll } from './useCursorScroll.js';
 import { truncateToWidth, padToWidth } from './text-width.js';
+import { Toast } from './Toast.js';
 
 const stateGlyph = (s: Artifact['state']): { ch: string; color: string; label: string } => {
   switch (s) {
@@ -55,7 +56,8 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
   const selectedEpicFolder = selectedEpic?.folder;
   const selectedEpicBranch = selectedEpic?.branch;
 
-  const listRows = Math.max(3, stdoutRows - 4);
+  const reserved = state?.toast ? 5 : 4;
+  const listRows = Math.max(3, stdoutRows - reserved);
   const list = useCursorScroll(artifacts, listRows);
 
   useEffect(() => { list.jumpTo(0); }, [state?.selectedEpic]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -165,6 +167,8 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
           {list.after > 0 && <Text dimColor wrap="truncate">  ↓ {list.after} more</Text>}
         </Box>
       )}
+
+      <Toast toast={state?.toast} />
     </Box>
   );
 };

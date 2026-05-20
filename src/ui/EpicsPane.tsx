@@ -3,7 +3,6 @@ import { Box, Text, useInput, useStdout } from 'ink';
 import { subscribeState, emitEvent } from '../ipc/store.js';
 import type { SharedState, Epic } from '../ipc/state.js';
 import { CommandPalette } from './CommandPalette.js';
-import { Toast } from './Toast.js';
 import { statusColor, statusBadge } from './status-color.js';
 import { loadPrefs, savePrefs } from '../ipc/ui-prefs.js';
 import { useCursorScroll } from './useCursorScroll.js';
@@ -157,7 +156,6 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
   if (filtering) reserved += 1;
   if (searching) reserved += 1;
   if (state?.epicSearch && !searching) reserved += 1;  // result status row
-  if (state?.toast) reserved += 1;
   const acliBad = state?.health && state.health.acli !== 'ok';
   const ghBad   = state?.health && state.health.gh   !== 'ok';
   const setupIssues = (acliBad ? 1 : 0) + (ghBad ? 1 : 0);
@@ -375,8 +373,6 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
           {list.after > 0 && <Text dimColor wrap="truncate">  ↓ {list.after} more</Text>}
         </Box>
       )}
-
-      <Toast toast={state?.toast} />
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </Box>

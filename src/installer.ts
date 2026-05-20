@@ -124,38 +124,33 @@ export async function autoInstall(deps: DepCheck[]): Promise<{ ok: boolean; need
   }
   console.error('');
 
-  if (required.length > 0) {
-    const proceed = await ask(`필수 도구 ${required.length}개를 Homebrew로 자동 설치할까요?`, true);
-    if (!proceed) return { ok: false, needsAuth: [] };
-    for (const d of required) {
-      console.error(`\n▶ ${d.name} 설치 중…`);
-      try {
-        for (const s of d.install) await runStep(s);
-        console.error(`✓ ${d.name} 설치 완료`);
-        if (d.needsAuth) needsAuth.push(d.name);
-      } catch (err) {
-        console.error(`✗ ${d.name} 설치 실패: ${(err as Error).message}`);
-        return { ok: false, needsAuth };
-      }
+  let installedNvim = false;
+  const proceed = await ask(
+    `미설치 도구 ${missing.length}개(필수 ${required.length}, 권장 ${optional.length})를 Homebrew로 자동 설치할까요?`,
+    true,
+  );
+  if (!proceed) return { ok: false, needsAuth: [] };
+
+  for (const d of required) {
+    console.error(`\n▶ ${d.name} 설치 중… (필수)`);
+    try {
+      for (const s of d.install) await runStep(s);
+      console.error(`✓ ${d.name} 설치 완료`);
+      if (d.needsAuth) needsAuth.push(d.name);
+    } catch (err) {
+      console.error(`✗ ${d.name} 설치 실패: ${(err as Error).message}`);
+      return { ok: false, needsAuth };
     }
   }
-
-  let installedNvim = false;
-  if (optional.length > 0) {
-    console.error('');
-    const proceed = await ask(`권장 도구 ${optional.length}개도 같이 설치할까요? (glow/nvim 등 — 거절해도 zax-shell 동작합니다)`, true);
-    if (proceed) {
-      for (const d of optional) {
-        console.error(`\n▶ ${d.name} 설치 중…`);
-        try {
-          for (const s of d.install) await runStep(s);
-          console.error(`✓ ${d.name} 설치 완료`);
-          if (d.name === 'nvim') installedNvim = true;
-          if (d.needsAuth) needsAuth.push(d.name);
-        } catch (err) {
-          console.error(`✗ ${d.name} 설치 실패 (건너뜀): ${(err as Error).message}`);
-        }
-      }
+  for (const d of optional) {
+    console.error(`\n▶ ${d.name} 설치 중… (권장)`);
+    try {
+      for (const s of d.install) await runStep(s);
+      console.error(`✓ ${d.name} 설치 완료`);
+      if (d.name === 'nvim') installedNvim = true;
+      if (d.needsAuth) needsAuth.push(d.name);
+    } catch (err) {
+      console.error(`✗ ${d.name} 설치 실패 (건너뜀): ${(err as Error).message}`);
     }
   }
 
