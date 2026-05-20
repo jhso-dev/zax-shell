@@ -24,15 +24,15 @@ export interface Config {
 }
 
 const CONFIG_DIR = process.env.ZAX_SHELL_CONFIG_DIR
-  ?? join(homedir(), '.config', 'zax-shell');
+  ?? join(homedir(), '.zax-shell', 'config');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
-// zax-shell maintains its own product-hub clone under ~/.cache so the user's
-// working tree (wherever they keep it) is never touched. Overridable in
-// config.json or via `zax-shell --set productHubPath=<path>`.
+// zax-shell maintains its own product-hub clone under ~/.zax-shell so the
+// user's working tree (wherever they keep it) is never touched. Overridable
+// in config.json or via `zax-shell --set productHubPath=<path>`.
 const DEFAULT_PRODUCT_HUB = process.env.ZAX_SHELL_STATE_DIR
   ? join(process.env.ZAX_SHELL_STATE_DIR, 'repo')
-  : join(homedir(), '.cache', 'zax-shell', 'repo');
+  : join(homedir(), '.zax-shell', 'state', 'repo');
 
 const DEFAULTS: Config = {
   productHubPath: DEFAULT_PRODUCT_HUB,

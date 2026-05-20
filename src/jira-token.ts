@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 
 const CONFIG_DIR = process.env.ZAX_SHELL_CONFIG_DIR
-  ?? join(homedir(), '.config', 'zax-shell');
+  ?? join(homedir(), '.zax-shell', 'config');
 const TOKEN_FILE = join(CONFIG_DIR, 'jira-token');
 
 // Persisted so children (daemon → jira-cli popups) inherit JIRA_API_TOKEN

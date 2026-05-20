@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
 
-export const NVIM_CONFIG_DIR = join(homedir(), '.config', 'zax-shell', 'nvim');
+export const NVIM_CONFIG_DIR = join(homedir(), '.zax-shell', 'config', 'nvim');
 export const NVIM_INIT_FILE = join(NVIM_CONFIG_DIR, 'init.lua');
 
 /**

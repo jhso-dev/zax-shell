@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 const WORKTREES_ROOT = process.env.ZAX_SHELL_WORKTREES_DIR
-  ?? join(homedir(), '.cache', 'zax-shell', 'worktrees');
+  ?? join(homedir(), '.zax-shell', 'state', 'worktrees');
 
 const MAIN_WT = join(WORKTREES_ROOT, '_main');
 

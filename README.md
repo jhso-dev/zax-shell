@@ -96,16 +96,24 @@ zax-shell
 ```
 zax-shell (CLI)
  ├─ daemon (Node)              ← Jira 조회 + product-hub git + 상태 집계
- │   ├─ ~/.cache/zax-shell/state.json
- │   └─ ~/.cache/zax-shell/worktrees/
- │       ├─ _main/             ← origin/master 공유 worktree (drift 비교 anchor)
- │       └─ {EPIC-KEY}/        ← feat 브랜치별 worktree
+ │   └─ ~/.zax-shell/state/
+ │       ├─ state.json, events.jsonl, daemon.pid
+ │       ├─ repo/              ← zax-shell 전용 product-hub 클론
+ │       └─ worktrees/
+ │           ├─ _main/         ← origin/master 공유 worktree (drift 비교 anchor)
+ │           └─ {EPIC-KEY}/    ← feat 브랜치별 worktree
  └─ tmux session "zax"
      ├─ pane: dashboard
      ├─ pane: epics
      ├─ pane: product-hub (artifacts)
      └─ pane: claude  (선택된 에픽 폴더에서 실행)
 ```
+
+모든 zax-shell 데이터는 `~/.zax-shell/` 한 곳에 모입니다:
+- `~/.zax-shell/` (또는 사용자가 install.sh로 설치한 디렉토리) ← install (git/src/node_modules)
+- `~/.zax-shell/state/` ← state.json, repo/, worktrees/, branch snapshots, daemon.pid
+- `~/.zax-shell/config/` ← config.json, jira-token, ui-prefs.json, nvim/
+- uninstall: `rm -rf ~/.zax-shell` 한 줄
 
 - **Main worktree (`_main/`)**: 사용자가 어느 브랜치에 체크아웃되어 있든 zax-shell은 항상 `origin/master` 기준으로 폴더/drift를 계산. 사용자 워킹 트리는 절대 안 건드림.
 - **Feat 브랜치 worktree**: zax 워크플로우의 `feat/{KEY}/{stage}` 브랜치를 자동 탐지 → 해당 브랜치를 별도 worktree로 체크아웃 → claude/Artifacts 모두 거기서 작업.
@@ -157,7 +165,7 @@ zax-shell --version
 
 ## 설정
 
-`~/.config/zax-shell/config.json`:
+`~/.zax-shell/config/config.json`:
 
 ```json
 {
@@ -182,7 +190,7 @@ cd ~/.zax-shell && git pull && npm ci && npm run build
 
 - **상태 / 데몬 확인**: `zax-shell --status`
 - **acli 진단**: `zax-shell --jira-debug`
-- **모두 초기화**: `zax-shell --kill && rm -rf ~/.cache/zax-shell`
+- **모두 초기화**: `zax-shell --kill && rm -rf ~/.zax-shell/state ~/.zax-shell/config`
 - **로그**: daemon stderr는 tmux 세션 종료 시 한 줄만 (`[zax-daemon] shutdown (reason)`)
 
 ## 라이센스
