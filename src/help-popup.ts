@@ -26,7 +26,7 @@ const SECTIONS: Section[] = [
   {
     title: '시스템 (모두 수동, 자동 폴링 없음)',
     rows: [
-      { keys: 'r',            label: '한 번에 갱신 — Jira 재조회 + Github(product-hub) pull. Product-Hub pane에서 누르세요' },
+      { keys: 'r',            label: '갱신 — Epics pane: Jira만 / Product-Hub pane: git fetch만 / Dashboard: 둘 다' },
       { keys: 'p',            label: '프로젝트별 좁히기 — B2C → HGNN → 전체 순환' },
       { keys: 'S',            label: '정렬 순환 (updated → key → status)' },
       { keys: ':',            label: '명령 팔레트' },

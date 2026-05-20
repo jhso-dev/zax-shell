@@ -36,8 +36,11 @@ export const DashboardPane: React.FC<{ productHubPath: string }> = ({ productHub
   // when this pane has tmux focus. Forward the few keys that should work
   // regardless of focus.
   useInput((input) => {
-    if (input === 'r') emitEvent({ type: 'refresh' });
-    else if (input === 'q') emitEvent({ type: 'confirm-quit' });
+    if (input === 'r') {
+      // Dashboard 'r' is a "refresh everything" power-user shortcut.
+      emitEvent({ type: 'refresh-jira' });
+      emitEvent({ type: 'refresh-hub' });
+    } else if (input === 'q') emitEvent({ type: 'confirm-quit' });
   });
 
   if (!state) return <Text dimColor>Loading dashboard…</Text>;

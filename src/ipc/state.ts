@@ -52,6 +52,8 @@ export interface Toast {
   text: string;
   /** ISO timestamp — used by panes to fade out after ~3s. */
   createdAt: string;
+  /** Which pane should render this toast. Undefined = both. */
+  pane?: 'epics' | 'hub';
 }
 
 export interface ExternalHealth {
@@ -100,8 +102,8 @@ export const initialState = (productHubPath: string): SharedState => ({
 export type Event =
   | { type: 'select-epic'; epicKey: string }
   | { type: 'open-file'; absPath: string }
-  | { type: 'refresh' }
-  | { type: 'sync-hub' }
+  | { type: 'refresh-jira' }
+  | { type: 'refresh-hub' }
   | { type: 'quit' }
   | { type: 'kill-all' }
   | { type: 'confirm-quit' }

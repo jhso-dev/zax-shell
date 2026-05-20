@@ -3,6 +3,7 @@ import { Box, Text, useInput, useStdout } from 'ink';
 import { subscribeState, emitEvent } from '../ipc/store.js';
 import type { SharedState, Epic } from '../ipc/state.js';
 import { CommandPalette } from './CommandPalette.js';
+import { Toast } from './Toast.js';
 import { statusColor, statusBadge } from './status-color.js';
 import { loadPrefs, savePrefs } from '../ipc/ui-prefs.js';
 import { useCursorScroll } from './useCursorScroll.js';
@@ -155,7 +156,8 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
   let reserved = 5;
   if (filtering) reserved += 1;
   if (searching) reserved += 1;
-  if (state?.epicSearch && !searching) reserved += 1;  // result status row
+  if (state?.epicSearch && !searching) reserved += 1;
+  if (state?.toast && state.toast.pane === 'epics') reserved += 1;
   const acliBad = state?.health && state.health.acli !== 'ok';
   const ghBad   = state?.health && state.health.gh   !== 'ok';
   const setupIssues = (acliBad ? 1 : 0) + (ghBad ? 1 : 0);
@@ -253,7 +255,9 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
     else if (key.pageDown)                   list.pageDown();
     else if (input === 'G')                  list.toBottom();
     else if (key.return)                     handleEnter();
-    else if (input === 'd') {
+    else if (input === 'r') {
+      emitEvent({ type: 'refresh-jira' });
+    } else if (input === 'd') {
       const e = filtered[list.cursor];
       if (e) emitEvent({ type: 'show-jira-detail', epicKey: e.key });
     } else if (input === 'g') {
@@ -305,7 +309,7 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
         </Text>
       )}
 
-      <Text dimColor wrap="truncate">↑↓ Enter · / 필터 · s Jira검색 · d 상세 · g GitHub · o Jira웹 · ?</Text>
+      <Text dimColor wrap="truncate">↑↓ Enter · / 필터 · s Jira검색 · r Jira갱신 · d 상세 · g GitHub · o · ?</Text>
 
       {filtering && (
         <Text wrap="truncate">
@@ -373,6 +377,8 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
           {list.after > 0 && <Text dimColor wrap="truncate">  ↓ {list.after} more</Text>}
         </Box>
       )}
+
+      <Toast toast={state?.toast} acceptPane="epics" />
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </Box>

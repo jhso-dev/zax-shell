@@ -38,12 +38,14 @@ const publish = () => {
   writeState(state);
 };
 
-const toast = (level: 'info' | 'success' | 'warn' | 'error', text: string) => {
+const toast = (level: 'info' | 'success' | 'warn' | 'error', text: string,
+               pane?: 'epics' | 'hub') => {
   state.toast = {
     id: String(Date.now()) + Math.random().toString(36).slice(2, 6),
     level,
     text,
     createdAt: new Date().toISOString(),
+    pane,
   };
   publish();
 };
@@ -155,13 +157,12 @@ const refreshHealth = (): void => {
 
 const syncProductHub = async (): Promise<void> => {
   if (!state.productHubExists) {
-    toast('error', 'product-hub 디렉토리 없음');
+    toast('error', 'product-hub 디렉토리 없음', 'hub');
     return;
   }
-  toast('info', '⟳ origin fetch + main worktree 갱신…');
+  toast('info', '⟳ origin fetch + main worktree 갱신…', 'hub');
   // --prune: drop refs deleted on origin; --force: accept non-ff updates
-  // on force-pushed feat branches. Without --force git exits 1 with
-  // "some local refs could not be updated" and we lose the whole refresh.
+  // on force-pushed feat branches.
   const fetchArgs = ['fetch', '--prune', '--force', '--quiet', 'origin'];
   try {
     execFileSync('git', fetchArgs, {
@@ -170,10 +171,8 @@ const syncProductHub = async (): Promise<void> => {
       timeout: 60_000,
     });
   } catch (err) {
-    // Partial fetch still updates the refs that succeeded — keep going,
-    // but tell the user something went wrong.
     const msg = (err as Error).message.split('\n').slice(0, 2).join(' ').slice(0, 100);
-    toast('warn', `일부 ref fetch 실패 (계속 진행): ${msg}`);
+    toast('warn', `일부 ref fetch 실패 (계속 진행): ${msg}`, 'hub');
   }
   try {
     if (!mainWorktreePath) {
@@ -182,9 +181,9 @@ const syncProductHub = async (): Promise<void> => {
     if (mainWorktreePath) updateMainWorktree(cfg.productHubPath);
     reannotateEpicFolders();
     if (state.selectedEpic) refreshArtifactsFor(state.selectedEpic);
-    toast('success', '✓ 동기화 완료 — 사용자 워킹 트리 안 건드림');
+    toast('success', '✓ product-hub 갱신 완료', 'hub');
   } catch (err) {
-    toast('error', `main worktree 갱신 실패: ${(err as Error).message.slice(0, 80)}`);
+    toast('error', `main worktree 갱신 실패: ${(err as Error).message.slice(0, 80)}`, 'hub');
   } finally {
     publish();
   }
@@ -205,11 +204,11 @@ const refreshAllEpics = async (announce = true) => {
     state.jiraStatus = 'ok';
     reconcileSelection();
     if (state.selectedEpic) refreshArtifactsFor(state.selectedEpic);
-    if (announce) toast('success', `✓ Jira 에픽 ${epics.length}건 로드`);
+    if (announce) toast('success', `✓ Jira 에픽 ${epics.length}건 로드`, 'epics');
   } catch (err) {
     const msg = (err as Error).message.slice(0, 60);
     state.jiraStatus = `error: ${msg}`;
-    if (announce) toast('error', `✗ Jira 조회 실패: ${msg}`);
+    if (announce) toast('error', `✗ Jira 조회 실패: ${msg}`, 'epics');
   } finally {
     publish();
   }
@@ -293,11 +292,10 @@ const handleEvent = (ev: Event) => {
     } catch (err) {
       toast('error', `파일 열기 실패: ${(err as Error).message.slice(0, 60)}`);
     }
-  } else if (ev.type === 'refresh' || ev.type === 'sync-hub') {
-    void (async () => {
-      await syncProductHub();
-      await refreshAllEpics(true);
-    })();
+  } else if (ev.type === 'refresh-jira') {
+    void refreshAllEpics(true);
+  } else if (ev.type === 'refresh-hub') {
+    void syncProductHub();
   } else if (ev.type === 'quit') {
     void shutdown('quit-event');
   } else if (ev.type === 'kill-all') {

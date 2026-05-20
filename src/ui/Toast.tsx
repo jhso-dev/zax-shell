@@ -6,6 +6,8 @@ interface Props {
   toast: ToastT | undefined;
   /** Hide after N ms since createdAt. */
   ttlMs?: number;
+  /** Only show toasts originating in this pane (or global toasts with no pane). */
+  acceptPane?: 'epics' | 'hub';
 }
 
 const COLOR: Record<ToastT['level'], string> = {
@@ -22,20 +24,23 @@ const GLYPH: Record<ToastT['level'], string> = {
   error:   '✗',
 };
 
-export const Toast: React.FC<Props> = ({ toast, ttlMs = 3000 }) => {
+export const Toast: React.FC<Props> = ({ toast, ttlMs = 3000, acceptPane }) => {
   const [visible, setVisible] = useState(false);
 
+  // Only render toasts whose pane matches (or have no pane = global).
+  const matches = !toast || toast.pane === undefined || toast.pane === acceptPane;
+
   useEffect(() => {
-    if (!toast) { setVisible(false); return; }
+    if (!toast || !matches) { setVisible(false); return; }
     const age = Date.now() - new Date(toast.createdAt).getTime();
     if (age > ttlMs) { setVisible(false); return; }
     setVisible(true);
     const remaining = Math.max(0, ttlMs - age);
     const t = setTimeout(() => setVisible(false), remaining);
     return () => clearTimeout(t);
-  }, [toast, ttlMs]);
+  }, [toast, ttlMs, matches]);
 
-  if (!visible || !toast) return null;
+  if (!visible || !toast || !matches) return null;
   return (
     <Text wrap="truncate" color={COLOR[toast.level]}>
       {`${GLYPH[toast.level]} ${toast.text}`}

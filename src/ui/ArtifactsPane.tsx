@@ -56,7 +56,8 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
   const selectedEpicFolder = selectedEpic?.folder;
   const selectedEpicBranch = selectedEpic?.branch;
 
-  const reserved = state?.toast ? 5 : 4;
+  const showHubToast = state?.toast && (state.toast.pane === undefined || state.toast.pane === 'hub');
+  const reserved = showHubToast ? 5 : 4;
   const listRows = Math.max(3, stdoutRows - reserved);
   const list = useCursorScroll(artifacts, listRows);
 
@@ -64,7 +65,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
 
   useInput((input, key) => {
     if (input === 'q') { emitEvent({ type: 'confirm-quit' }); return; }
-    if (input === 'r') { emitEvent({ type: 'refresh' }); return; }
+    if (input === 'r') { emitEvent({ type: 'refresh-hub' }); return; }
 
     if (input === 'g') {
       if (state?.selectedEpic) emitEvent({ type: 'show-gh-dash', epicKey: state.selectedEpic });
@@ -123,7 +124,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
           return `${state.selectedEpic}${branchTag}${cursorPart}`;
         })()}
       </Text>
-      <Text dimColor wrap="truncate">↑↓ Enter · r 갱신(Jira+Github) · g GitHub · o Jira웹 · ✓ok ◐drift ⚠stale ·missing</Text>
+      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · g GitHub · o Jira웹 · ✓ok ◐drift ⚠stale ·missing</Text>
 
       {!state.selectedEpic ? (
         <Text dimColor wrap="truncate">좌측에서 에픽을 선택하세요</Text>
@@ -168,7 +169,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
         </Box>
       )}
 
-      <Toast toast={state?.toast} />
+      <Toast toast={state?.toast} acceptPane="hub" />
     </Box>
   );
 };

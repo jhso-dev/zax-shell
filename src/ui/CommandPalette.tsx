@@ -17,7 +17,12 @@ const openInEditor = (absPath: string) => {
 const baseCommands = (): Command[] => {
   const cfg = loadConfig();
   return [
-    { id: 'refresh',        label: 'refresh — Jira/Artifacts 새로고침',     run: () => emitEvent({ type: 'refresh' }) },
+    { id: 'refresh',        label: 'refresh — Jira + product-hub 둘 다 새로고침', run: () => {
+      emitEvent({ type: 'refresh-jira' });
+      emitEvent({ type: 'refresh-hub' });
+    }},
+    { id: 'refresh-jira',   label: 'refresh-jira — Jira 에픽만 새로고침',    run: () => emitEvent({ type: 'refresh-jira' }) },
+    { id: 'refresh-hub',    label: 'refresh-hub — product-hub git fetch만',  run: () => emitEvent({ type: 'refresh-hub' }) },
     { id: 'open-config',    label: 'open-config — config.json 편집',         run: () => openInEditor(CONFIG_FILE) },
     { id: 'open-product-hub', label: 'open-product-hub — 디렉토리 열기',     run: () => {
       try {
@@ -34,12 +39,7 @@ const baseCommands = (): Command[] => {
       } catch {}
     }},
     { id: 'restart-claude', label: 'restart-claude — 우측 pane의 claude 재시작', run: () => {
-      // Reselect current epic to trigger respawn.
-      // We don't know current selectedEpic here in pane process; daemon does.
-      // Emit a synthetic "refresh+select" by re-emitting current selection via
-      // a no-op event that daemon interprets — simplest is to ask user to press Enter again,
-      // but we can also re-emit if the pane knows. For now: invoke 'refresh'.
-      emitEvent({ type: 'refresh' });
+      emitEvent({ type: 'refresh-jira' });
     }},
     { id: 'kill-zax',       label: 'kill-zax — 세션과 daemon 종료',          run: () => {
       try { execFileSync('tmux', ['kill-session', '-t', cfg.tmuxSession],
