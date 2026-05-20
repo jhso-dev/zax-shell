@@ -17,8 +17,7 @@ export interface DepCheck {
 
 export type InstallStep =
   | { kind: 'brew-tap'; name: string }
-  | { kind: 'brew-install'; pkg: string }
-  | { kind: 'gh-extension'; repo: string };
+  | { kind: 'brew-install'; pkg: string };
 
 const probe = (cmd: string, args: string[]): { installed: boolean; version?: string } => {
   try {
@@ -27,21 +26,6 @@ const probe = (cmd: string, args: string[]): { installed: boolean; version?: str
       timeout: 4000,
     }).toString().trim().split('\n')[0]!.trim();
     return { installed: true, version: out };
-  } catch {
-    return { installed: false };
-  }
-};
-
-const probeGhExtension = (slug: string): { installed: boolean; version?: string } => {
-  try {
-    const out = execFileSync('gh', ['extension', 'list'], {
-      stdio: ['ignore', 'pipe', 'ignore'],
-      timeout: 4000,
-    }).toString();
-    if (new RegExp(`\\b${slug.replace('/', '\\/')}\\b`).test(out)) {
-      return { installed: true, version: 'installed' };
-    }
-    return { installed: false };
   } catch {
     return { installed: false };
   }
@@ -76,26 +60,6 @@ export function checkDeps(): DepCheck[] {
       ...probe('gh', ['--version']),
       install: [{ kind: 'brew-install', pkg: 'gh' }],
       doc: 'https://cli.github.com/',
-    },
-    {
-      name: 'jira',
-      required: false,
-      blurb: 'jira-cli — 에픽 상세/코멘트/전이 (d 키)',
-      needsAuth: true,
-      ...probe('jira', ['version']),
-      install: [
-        { kind: 'brew-tap', name: 'ankitpokhrel/jira-cli' },
-        { kind: 'brew-install', pkg: 'jira-cli' },
-      ],
-      doc: 'https://github.com/ankitpokhrel/jira-cli',
-    },
-    {
-      name: 'gh-dash',
-      required: false,
-      blurb: 'gh-dash 확장 — PR/Issue TUI 대시보드 (g 키)',
-      ...probeGhExtension('dlvhdr/gh-dash'),
-      install: [{ kind: 'gh-extension', repo: 'dlvhdr/gh-dash' }],
-      doc: 'https://github.com/dlvhdr/gh-dash',
     },
     {
       name: 'nvim',

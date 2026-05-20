@@ -108,8 +108,6 @@ export type Event =
   | { type: 'kill-all' }
   | { type: 'confirm-quit' }
   | { type: 'show-help' }
-  | { type: 'show-jira-detail'; epicKey: string }
-  | { type: 'show-gh-dash'; epicKey: string }
   | { type: 'open-browser'; url: string }
   | { type: 'jira-search'; query: string }
   | { type: 'jira-search-clear' };

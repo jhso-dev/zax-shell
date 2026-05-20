@@ -12,8 +12,7 @@ import { findFeatureBranches, findEpicFolderOnBranch } from './product-hub/branc
 import { ensureWorktree, ensureMainWorktree, updateMainWorktree } from './product-hub/worktree.js';
 import { startWatcher } from './product-hub/watch.js';
 import { computeDashboard, annotateArtifactStates } from './workflow/drift.js';
-import { respawnRightPane, notifyRightPane, captureLayout, applyLayout, applyPaneLabels, showQuitConfirm, showHelpPopup, showJiraDetailPopup, showGhDashPopup } from './tmux/session.js';
-import { writeGhDashConfig } from './gh-dash-config.js';
+import { respawnRightPane, notifyRightPane, captureLayout, applyLayout, applyPaneLabels, showQuitConfirm, showHelpPopup } from './tmux/session.js';
 import { pickViewer } from './viewer.js';
 
 const cfg = loadConfig();
@@ -118,29 +117,6 @@ const reconcileSelection = () => {
   }
 };
 
-const hasBin = (bin: string): boolean => {
-  try {
-    execFileSync('which', [bin], { stdio: ['ignore', 'ignore', 'ignore'] });
-    return true;
-  } catch { return false; }
-};
-
-const hasJiraCliConfig = (): boolean => {
-  const candidates = [
-    join(process.env.HOME ?? '', '.config', '.jira', '.config.yml'),
-    join(process.env.HOME ?? '', '.config', 'jira', '.config.yml'),
-    join(process.env.HOME ?? '', '.jira.d', 'config.yml'),
-  ];
-  return candidates.some((p) => existsSync(p));
-};
-
-const hasGhDash = (): boolean => {
-  try {
-    const out = execFileSync('gh', ['extension', 'list'],
-      { stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).toString();
-    return /\bdlvhdr\/gh-dash\b/.test(out) || /\bgh-dash\b/.test(out);
-  } catch { return false; }
-};
 
 const checkCliHealth = (bin: string, args: string[], timeoutMs = 4000):
   'ok' | 'missing' | 'unauthed' => {
@@ -329,28 +305,6 @@ const handleEvent = (ev: Event) => {
     })();
   } else if (ev.type === 'show-help') {
     void showHelpPopup();
-  } else if (ev.type === 'show-jira-detail') {
-    if (!hasBin('jira')) {
-      toast('error', 'jira-cli 미설치 — brew install ankitpokhrel/jira-cli/jira-cli');
-      return;
-    }
-    if (!hasJiraCliConfig()) {
-      toast('warn', 'jira-cli 인증 필요 — 새 터미널에서 `jira init` 실행');
-      return;
-    }
-    void showJiraDetailPopup(ev.epicKey);
-  } else if (ev.type === 'show-gh-dash') {
-    if (!hasBin('gh')) { toast('error', 'gh 미설치'); return; }
-    if (!hasGhDash())  { toast('error', 'gh-dash 미설치 — gh extension install dlvhdr/gh-dash'); return; }
-    try {
-      const cfg2 = writeGhDashConfig(ev.epicKey);
-      // Use STATE_DIR (non-git) as cwd so gh-dash doesn't latch onto the
-      // worktree's git remote as a default repository — our filters are
-      // org-scoped and span every repo touching this epic.
-      void showGhDashPopup(ev.epicKey, cfg2, STATE_DIR);
-    } catch (err) {
-      toast('error', `gh-dash 실행 실패: ${(err as Error).message.slice(0, 80)}`);
-    }
   } else if (ev.type === 'open-browser') {
     try {
       spawn('open', [ev.url], { detached: true, stdio: 'ignore' }).unref();

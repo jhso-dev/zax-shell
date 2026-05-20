@@ -67,12 +67,14 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
     if (input === 'q') { emitEvent({ type: 'confirm-quit' }); return; }
     if (input === 'r') { emitEvent({ type: 'refresh-hub' }); return; }
 
-    if (input === 'g') {
-      if (state?.selectedEpic) emitEvent({ type: 'show-gh-dash', epicKey: state.selectedEpic });
-      return;
-    }
     if (input === 'o') {
-      if (selectedEpic?.url) emitEvent({ type: 'open-browser', url: selectedEpic.url });
+      // GitHub PR search across the whole org, scoped to this epic key.
+      const key = state?.selectedEpic;
+      if (key) {
+        const org = process.env.ZAX_SHELL_GH_ORG ?? 'zigbang';
+        const q = encodeURIComponent(`org:${org} ${key}`);
+        emitEvent({ type: 'open-browser', url: `https://github.com/search?q=${q}&type=pullrequests` });
+      }
       return;
     }
 
@@ -124,7 +126,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
           return `${state.selectedEpic}${branchTag}${cursorPart}`;
         })()}
       </Text>
-      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · g GitHub · o Jira웹 · ✓ok ◐drift ⚠stale ·missing</Text>
+      <Text dimColor wrap="truncate">↑↓ Enter · r Hub갱신 · o GitHub웹(PR검색) · ✓ok ◐drift ⚠stale ·missing</Text>
 
       {!state.selectedEpic ? (
         <Text dimColor wrap="truncate">좌측에서 에픽을 선택하세요</Text>

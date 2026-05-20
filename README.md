@@ -51,7 +51,7 @@ ln -sf ~/.zax-shell/bin/zax-shell ~/.local/bin/zax-shell    # ← Apple Silicon 
 # 또는 ln -sf ~/.zax-shell/bin/zax-shell /usr/local/bin/zax-shell  (Intel)
 ```
 
-첫 실행 시 zax-shell이 필요한 도구(tmux, acli, gh, jira-cli, gh-dash, nvim+markview)를 자동으로 brew/gh-extension으로 설치하고 OAuth/토큰 가이드까지 끌어줍니다.
+첫 실행 시 zax-shell이 필요한 도구(tmux, acli, gh, nvim+markview)를 자동으로 brew로 설치하고 OAuth 인증까지 끌어줍니다.
 
 ```bash
 zax-shell
@@ -68,9 +68,8 @@ zax-shell
 | `s` | **Jira 전체 검색** (참여 안 한 에픽까지) |
 | `S` | 정렬 순환 (updated → key → status) |
 | `p` | 프로젝트 prefix 순환 |
-| `d` | Jira 에픽 상세 popup (jira-cli) |
-| `g` | GitHub PR/Issue popup (gh-dash) |
-| `o` | 브라우저에서 Jira 에픽 열기 |
+| `r` | Jira 에픽 다시 조회 |
+| `o` | 브라우저에서 **Jira** 에픽 페이지 열기 |
 | `Esc` | 검색/필터 해제 |
 | `?` | 도움말 popup |
 | `q` | 종료 확인 popup |
@@ -79,9 +78,8 @@ zax-shell
 | 키 | 동작 |
 |---|---|
 | `Enter` | 산출물 열기 (`.md` → nvim+markview, `.html` → 기본 브라우저) |
-| `r` | **갱신** (Jira 재조회 + product-hub fetch + main worktree 재핀) |
-| `g` | 이 에픽의 GitHub popup |
-| `o` | 브라우저에서 Jira 열기 |
+| `r` | product-hub git fetch + main worktree 갱신 |
+| `o` | 브라우저에서 **GitHub** PR 검색 (org 전체에서 이 에픽 키 포함) |
 
 ### 패널 이동 (tmux)
 | 키 | 동작 |
@@ -125,9 +123,7 @@ zax-shell (CLI)
 |---|---|---|
 | **tmux** | 4-pane 멀티플렉서 | ✓ |
 | **acli** | Jira 에픽 조회 (workitem search) | ✓ (OAuth) |
-| **gh** | product-hub git, gh-dash | ✓ (OAuth) |
-| **jira-cli** | `d` 키 — 에픽 상세/코멘트/transition | ✓ (Atlassian API token) |
-| **gh-dash** | `g` 키 — PR/Issue 대시보드 | ✓ |
+| **gh** | product-hub git clone/fetch | ✓ (OAuth) |
 | **nvim + markview** | Enter — .md 렌더+편집 한 화면 | ✓ |
 
 ## 자주 묻는 것
@@ -143,13 +139,6 @@ zax-shell (CLI)
 
 **Q. claude 세션이 매번 새로 뜨나요?**
 같은 에픽 재선택은 no-op. 다른 에픽으로 이동 후 돌아오면 `claude --continue` 로 이전 대화 그대로 이어집니다 (cwd별 자동 분리).
-
-**Q. jira-cli 인증이 안 돼요.**
-첫 실행 시 안내가 나오지만 스킵했다면:
-```bash
-# Atlassian API 토큰 발급: https://id.atlassian.com/manage-profile/security/api-tokens
-JIRA_API_TOKEN=<token> jira init
-```
 
 ## CLI
 

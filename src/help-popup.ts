@@ -17,8 +17,6 @@ const SECTIONS: Section[] = [
       { keys: 'Enter',        label: '에픽 선택 → 우측에 claude 실행' },
       { keys: '/',            label: '로컬 키워드 필터 (현재 리스트 안에서)' },
       { keys: 's',            label: 'Jira 전체 검색 — 내가 참여 안 한 에픽까지 (Esc 해제)' },
-      { keys: 'd',            label: 'Jira 에픽 상세 popup (jira-cli)' },
-      { keys: 'g',            label: 'GitHub 대시보드 popup (gh-dash, 이 에픽 필터)' },
       { keys: 'o',            label: '브라우저에서 Jira 에픽 열기' },
       { keys: 'Esc',          label: '필터 / 팔레트 해제' },
     ],
@@ -59,8 +57,7 @@ const SECTIONS: Section[] = [
       { keys: 'i',            label: '편집 모드 시작 (insert)' },
       { keys: 'Esc',          label: '편집 종료 → 렌더링 보기' },
       { keys: ':w / :q / :wq', label: '저장 / 닫기 / 저장 후 닫기' },
-      { keys: 'g',            label: '이 에픽의 GitHub PR/Issue popup (gh-dash)' },
-      { keys: 'o',            label: '브라우저에서 Jira 에픽 열기' },
+      { keys: 'o',            label: 'GitHub에서 이 에픽 PR 검색 (org 전체)' },
     ],
   },
 ];

@@ -257,12 +257,6 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
     else if (key.return)                     handleEnter();
     else if (input === 'r') {
       emitEvent({ type: 'refresh-jira' });
-    } else if (input === 'd') {
-      const e = filtered[list.cursor];
-      if (e) emitEvent({ type: 'show-jira-detail', epicKey: e.key });
-    } else if (input === 'g') {
-      const e = filtered[list.cursor];
-      if (e) emitEvent({ type: 'show-gh-dash', epicKey: e.key });
     } else if (input === 'o') {
       const e = filtered[list.cursor];
       if (e?.url) emitEvent({ type: 'open-browser', url: e.url });
@@ -309,7 +303,7 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
         </Text>
       )}
 
-      <Text dimColor wrap="truncate">↑↓ Enter · / 필터 · s Jira검색 · r Jira갱신 · d 상세 · g GitHub · o · ?</Text>
+      <Text dimColor wrap="truncate">↑↓ Enter · / 필터 · s Jira검색 · r Jira갱신 · o Jira웹 · ?</Text>
 
       {filtering && (
         <Text wrap="truncate">
