@@ -1,13 +1,15 @@
-import { spawn, execSync } from 'node:child_process';
+import { spawn, spawnSync, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from 'node:fs';
+import readline from 'node:readline';
 import { loadConfig, saveConfig, CONFIG_FILE } from './config/index.js';
 import { buildSession, attachOrExec, killSession, sessionExists } from './tmux/session.js';
 import { STATE_DIR } from './ipc/state.js';
 import { checkDeps } from './preflight.js';
 import { autoInstall, runAuth } from './installer.js';
 import { injectJiraTokenEnv } from './jira-token.js';
+import { checkLatestVersion, runUpgrade } from './update-check.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DAEMON_ENTRY = join(here, 'daemon.ts');
@@ -123,6 +125,51 @@ const killAll = (): void => {
   try { execSync('pkill -9 -f "dist/daemon"', { stdio: 'ignore' }); } catch {}
 };
 
+const askYesNo = (q: string, defaultYes = true): Promise<boolean> =>
+  new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(`${q} ${defaultYes ? '[Y/n]' : '[y/N]'} `, (ans) => {
+      rl.close();
+      const t = ans.trim();
+      if (!t) return resolve(defaultYes);
+      resolve(/^y/i.test(t));
+    });
+  });
+
+const promptUpdateAndMaybeUpgrade = async (): Promise<void> => {
+  // Recursion guard: after self-restart we set this env var so the new
+  // process skips the check (cache already up to date anyway).
+  if (process.env.ZAX_SHELL_SKIP_UPDATE_CHECK) return;
+
+  const current = readVersion();
+  let info;
+  try { info = checkLatestVersion(current); } catch { return; }
+  if (!info || !info.hasUpdate) return;
+
+  console.error('');
+  console.error(`  📦 새 버전: zax-shell ${info.latest} (현재 ${info.current})`);
+  const proceed = await askYesNo('  지금 업데이트하시겠어요?', true);
+  if (!proceed) return;
+
+  const installDir = join(here, '..');  // repo root (dist/cli.js → ../package.json)
+  console.error('');
+  const result = runUpgrade(installDir);
+  if (!result.ok) {
+    console.error(`  ✗ ${result.message} — 계속 진행합니다 (현재 버전 유지)`);
+    return;
+  }
+  console.error(`  ✓ ${result.message} — 재시작합니다.\n`);
+
+  // Replace this process with the upgraded launcher. The env flag stops
+  // the recursive check in the new process.
+  const launcher = join(installDir, 'bin', 'zax-shell');
+  const r = spawnSync(launcher, process.argv.slice(2), {
+    stdio: 'inherit',
+    env: { ...process.env, ZAX_SHELL_SKIP_UPDATE_CHECK: '1' },
+  });
+  process.exit(r.status ?? 0);
+};
+
 const main = async () => {
   // Propagate saved JIRA_API_TOKEN before any child spawn inherits env.
   injectJiraTokenEnv();
@@ -179,6 +226,10 @@ const main = async () => {
     console.log(`saved: ${k}=${(saved as any)[k]}`);
     return;
   }
+
+  // Check for a newer release before doing anything heavy. Skips silently
+  // if gh isn't authed yet or no network.
+  await promptUpdateAndMaybeUpgrade();
 
   // Always call autoInstall: it also catches "binary present but unconfigured"
   // (jira-cli without `jira init`) which a missing-check alone would skip.
