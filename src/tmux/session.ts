@@ -140,41 +140,7 @@ export function buildSession(opts: BuildOpts): void {
   tmuxQuiet(['bind-key', '-T', 'root', 'WheelDownPane',
              'select-pane -t = ; send-keys -t = Down']);
 
-  // Tab cycles in side panes only — pass through inside Claude so Claude's
-  // Tab/Shift-Tab (autocomplete + mode toggle) keep working.
-  const epicsId    = `${sessionName}:0.1`;
-  const claudeId    = rightPaneId;
-  const artifactsId = artifactsPaneId;
-  tmuxQuiet([
-    'bind-key', '-T', 'root', '-N', 'cycle (Tab pass-through in Claude)',
-    'Tab',
-    'if-shell', '-F',
-    `#{==:#{pane_id},${claudeId}}`,
-    'send-keys Tab',
-    `if-shell -F '#{==:#{pane_id},${artifactsId}}' 'select-pane -t ${claudeId}' 'select-pane -t ${artifactsId}'`,
-  ]);
-  // Ctrl-T — always cycles, even from inside Claude. Claude doesn't bind
-  // Ctrl-T, so this is the safe keyboard escape from the Claude pane.
-  tmuxQuiet([
-    'bind-key', '-T', 'root', '-N', 'global cycle (works in Claude)',
-    'C-t',
-    'if-shell', '-F',
-    `#{==:#{pane_id},${claudeId}}`,
-    `select-pane -t ${epicsId}`,
-    `if-shell -F '#{==:#{pane_id},${artifactsId}}' 'select-pane -t ${claudeId}' 'select-pane -t ${artifactsId}'`,
-  ]);
-
-  // Resize: Alt-,/. shifts the vertical divider, Alt--/= shifts horizontal.
-  // The daemon polls and persists the layout so changes survive restarts.
-  const epicsT = `${sessionName}:0.1`;
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink left column',
-             'M-,', 'resize-pane', '-t', epicsT, '-L', '5']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow left column',
-             'M-.', 'resize-pane', '-t', epicsT, '-R', '5']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink epics row',
-             'M--', 'resize-pane', '-t', epicsT, '-U', '3']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow epics row',
-             'M-=', 'resize-pane', '-t', epicsT, '-D', '3']);
+  applyNavBindings(sessionName, rightPaneId, artifactsPaneId);
 
   tmuxQuiet(['set-option', '-t', sessionName, 'pane-border-style', 'fg=colour240']);
   tmuxQuiet(['set-option', '-t', sessionName, 'pane-active-border-style', 'fg=colour51,bold']);
@@ -245,6 +211,11 @@ export function killSession(sessionName: string): void {
  * cockpit. Resolves true (kill confirmed) / false (cancelled). The popup
  * grabs focus until the user picks Y / Enter (yes) or N / Esc (no).
  */
+function withSuspendedNav<T>(spawnPopup: () => Promise<T>): Promise<T> {
+  suspendNavBindings();
+  return spawnPopup().finally(() => resumeNavBindings());
+}
+
 export function showQuitConfirm(): Promise<boolean> {
   const promptScript = `
 const out = process.stdout;
@@ -270,7 +241,7 @@ inp.on('data', (d) => {
 });
 `.trim();
 
-  return new Promise((resolve) => {
+  return withSuspendedNav(() => new Promise<boolean>((resolve) => {
     const args = [
       'display-popup', '-E',
       '-w', '54', '-h', '9',
@@ -281,7 +252,7 @@ inp.on('data', (d) => {
     const child = spawn('tmux', args, { stdio: 'inherit' });
     child.on('exit', (code) => resolve(code === 0));
     child.on('error', () => resolve(false));
-  });
+  }));
 }
 
 /** Capture the current tmux layout string for a window. */
@@ -295,7 +266,7 @@ export function captureLayout(sessionName: string): string | null {
 
 export function showHelpPopup(): Promise<void> {
   const helpEntry = join(here, '..', 'help-popup.ts');
-  return new Promise((resolve) => {
+  return withSuspendedNav(() => new Promise<void>((resolve) => {
     const child = spawn('tmux', [
       'display-popup', '-E',
       '-w', '80', '-h', '32',
@@ -305,11 +276,11 @@ export function showHelpPopup(): Promise<void> {
     ], { stdio: 'inherit' });
     child.on('exit', () => resolve());
     child.on('error', () => resolve());
-  });
+  }));
 }
 
 export function showJiraDetailPopup(epicKey: string): Promise<void> {
-  return new Promise((resolve) => {
+  return withSuspendedNav(() => new Promise<void>((resolve) => {
     const child = spawn('tmux', [
       'display-popup', '-E',
       '-w', '90%', '-h', '90%',
@@ -319,12 +290,12 @@ export function showJiraDetailPopup(epicKey: string): Promise<void> {
     ], { stdio: 'inherit' });
     child.on('exit', () => resolve());
     child.on('error', () => resolve());
-  });
+  }));
 }
 
 export function showGhDashPopup(epicKey: string, configPath: string,
                                 cwd: string): Promise<void> {
-  return new Promise((resolve) => {
+  return withSuspendedNav(() => new Promise<void>((resolve) => {
     const child = spawn('tmux', [
       'display-popup', '-E',
       '-w', '90%', '-h', '90%',
@@ -335,7 +306,69 @@ export function showGhDashPopup(epicKey: string, configPath: string,
     ], { stdio: 'inherit' });
     child.on('exit', () => resolve());
     child.on('error', () => resolve());
-  });
+  }));
+}
+
+// ── pane navigation bindings ──────────────────────────────────────────────
+// Tab / Ctrl-T / Alt-* cycle and resize panes. While a popup is open we
+// must *unbind* them so the embedded tool (gh-dash, jira-cli, help) gets
+// Tab/etc. raw — otherwise tmux intercepts the key and shifts focus to a
+// pane, visually covering the popup ("popup disappears" bug).
+
+const NAV_KEYS = ['Tab', 'C-t', 'M-,', 'M-.', 'M--', 'M-='];
+
+const NAV_FILE = join(STATE_DIR, 'nav-targets.json');
+interface NavTargets { sessionName: string; right: string; artifacts: string }
+
+function saveNavTargets(t: NavTargets): void {
+  if (!existsSync(STATE_DIR)) mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(NAV_FILE, JSON.stringify(t), 'utf8');
+}
+function loadNavTargets(): NavTargets | null {
+  try { return JSON.parse(readFileSync(NAV_FILE, 'utf8')) as NavTargets; }
+  catch { return null; }
+}
+
+export function applyNavBindings(sessionName: string,
+                                 rightPaneId: string,
+                                 artifactsPaneId: string): void {
+  const epicsId = `${sessionName}:0.1`;
+  saveNavTargets({ sessionName, right: rightPaneId, artifacts: artifactsPaneId });
+
+  tmuxQuiet([
+    'bind-key', '-T', 'root', '-N', 'cycle (Tab pass-through in Claude)',
+    'Tab',
+    'if-shell', '-F',
+    `#{==:#{pane_id},${rightPaneId}}`,
+    'send-keys Tab',
+    `if-shell -F '#{==:#{pane_id},${artifactsPaneId}}' 'select-pane -t ${rightPaneId}' 'select-pane -t ${artifactsPaneId}'`,
+  ]);
+  tmuxQuiet([
+    'bind-key', '-T', 'root', '-N', 'global cycle (works in Claude)',
+    'C-t',
+    'if-shell', '-F',
+    `#{==:#{pane_id},${rightPaneId}}`,
+    `select-pane -t ${epicsId}`,
+    `if-shell -F '#{==:#{pane_id},${artifactsPaneId}}' 'select-pane -t ${rightPaneId}' 'select-pane -t ${artifactsPaneId}'`,
+  ]);
+
+  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink left column',
+             'M-,', 'resize-pane', '-t', epicsId, '-L', '5']);
+  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow left column',
+             'M-.', 'resize-pane', '-t', epicsId, '-R', '5']);
+  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink epics row',
+             'M--', 'resize-pane', '-t', epicsId, '-U', '3']);
+  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow epics row',
+             'M-=', 'resize-pane', '-t', epicsId, '-D', '3']);
+}
+
+function suspendNavBindings(): void {
+  for (const k of NAV_KEYS) tmuxQuiet(['unbind-key', '-T', 'root', k]);
+}
+
+function resumeNavBindings(): void {
+  const t = loadNavTargets();
+  if (t) applyNavBindings(t.sessionName, t.right, t.artifacts);
 }
 
 /** Apply a previously saved layout. Returns true if applied. */
