@@ -1,0 +1,21 @@
+src/update-check.ts
+  s_878fe18417e2ac::t_317f16b89349eb 24
+package.json
+  s_878fe18417e2ac::t_fe34889fbe1ef0 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "e1cd2c883441e18450853ac69f359f84b1009cb1",
+  "prompts": {},
+  "sessions": {
+    "s_878fe18417e2ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b2e480b5-c88c-4736-bc9f-4da5da14c2c1",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Nathen So <jhso@zigbang.com>"
+    }
+  }
+}
