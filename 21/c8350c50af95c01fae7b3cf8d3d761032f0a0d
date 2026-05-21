@@ -1,0 +1,27 @@
+src/cli.ts
+  s_878fe18417e2ac::t_9dd5ac2660a555 109
+src/tmux/session.ts
+  s_878fe18417e2ac::t_4053d2f32e7998 333-334
+  s_878fe18417e2ac::t_39ed127b1cdad1 308-311,313
+  s_878fe18417e2ac::t_25b32160f611c0 336
+src/help-popup.ts
+  s_878fe18417e2ac::t_78603befec348b 38
+src/ui/EpicsPane.tsx
+  s_878fe18417e2ac::t_f27472088a5ee9 210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "21c8350c50af95c01fae7b3cf8d3d761032f0a0d",
+  "prompts": {},
+  "sessions": {
+    "s_878fe18417e2ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b2e480b5-c88c-4736-bc9f-4da5da14c2c1",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Nathen So <jhso@zigbang.com>"
+    }
+  }
+}
