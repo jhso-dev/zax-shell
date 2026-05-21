@@ -1,0 +1,19 @@
+README.md
+  s_878fe18417e2ac::t_1b50a1bd1529cc 20,23,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "ed148297e3e3d1b53ecf39e5f600e43b26b149bf",
+  "prompts": {},
+  "sessions": {
+    "s_878fe18417e2ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b2e480b5-c88c-4736-bc9f-4da5da14c2c1",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Nathen So <jhso@zigbang.com>"
+    }
+  }
+}
