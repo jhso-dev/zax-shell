@@ -41,6 +41,7 @@ export const DashboardPane: React.FC<{ productHubPath: string }> = ({ productHub
       emitEvent({ type: 'refresh-jira' });
       emitEvent({ type: 'refresh-hub' });
     } else if (input === 'q') emitEvent({ type: 'confirm-quit' });
+    else if (input === '?') emitEvent({ type: 'show-help' });
   });
 
   if (!state) return <Text dimColor>Loading dashboard…</Text>;

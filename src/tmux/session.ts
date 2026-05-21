@@ -311,12 +311,12 @@ export function showBranchSwitchPopup(
 }
 
 // ── pane navigation bindings ──────────────────────────────────────────────
-// Alt-* resize panes; C-t cycles panes. While a popup is open we must
-// *unbind* them so the embedded tool (help) gets the keys raw — otherwise
-// tmux intercepts the key and shifts focus to a pane, visually covering
-// the popup ("popup disappears" bug).
+// C-t cycles panes. While a popup is open we must *unbind* it so the
+// embedded tool (help) gets the key raw — otherwise tmux intercepts it
+// and shifts focus to a pane, visually covering the popup ("popup
+// disappears" bug).
 
-const NAV_KEYS = ['M-,', 'M-.', 'M--', 'M-=', 'C-t'];
+const NAV_KEYS = ['C-t'];
 
 const NAV_FILE = join(STATE_DIR, 'nav-targets.json');
 interface NavTargets { sessionName: string; right: string; artifacts: string }
@@ -354,18 +354,6 @@ export function applyNavBindings(sessionName: string,
     'bind-key', '-T', 'root', '-N', 'kill cockpit',
     'C-c', 'kill-session', '-t', sessionName,
   ]);
-
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink left column',
-             'M-,', 'resize-pane', '-t', epicsId, '-L', '5']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow left column',
-             'M-.', 'resize-pane', '-t', epicsId, '-R', '5']);
-  // Vertical resize targets the *artifacts* pane so the divider that
-  // moves is the one between Epics ↔ Product-Hub, never the one between
-  // Dashboard ↔ Epics. Dashboard's row count stays fixed at 3.
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink artifacts',
-             'M--', 'resize-pane', '-t', artifactsPaneId, '-U', '3']);
-  tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow artifacts',
-             'M-=', 'resize-pane', '-t', artifactsPaneId, '-D', '3']);
 }
 
 function suspendNavBindings(): void {

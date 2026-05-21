@@ -65,6 +65,7 @@ export const ArtifactsPane: React.FC<{ productHubPath: string }> = ({ productHub
 
   useInput((input, key) => {
     if (input === 'q') { emitEvent({ type: 'confirm-quit' }); return; }
+    if (input === '?') { emitEvent({ type: 'show-help' }); return; }
     if (input === 'r') { emitEvent({ type: 'refresh-hub' }); return; }
     if (input === 'b') {
       if (state?.selectedEpic) emitEvent({ type: 'switch-branch', epicKey: state.selectedEpic });

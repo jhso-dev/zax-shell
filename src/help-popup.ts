@@ -33,31 +33,25 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: 'pane 이동',
+    title: 'pane 이동 / 종료',
     rows: [
       { keys: 'Ctrl-T',       label: 'pane 순환 (Epics → Hub → Claude → ...)' },
       { keys: '마우스 클릭',  label: '클릭한 pane으로 포커스' },
-      { keys: 'Ctrl-B d',     label: 'detach (세션 유지)' },
-      { keys: 'Ctrl-B z',     label: '현재 pane 최대화 / 복원' },
+      { keys: 'Ctrl-C',       label: 'cockpit 전체 종료 (어느 pane에서 눌러도)' },
     ],
   },
   {
-    title: 'pane 너비/높이 조절 (자동 저장)',
+    title: 'pane 크기 조절',
     rows: [
-      { keys: 'Alt-, / Alt-.', label: '좌측 컬럼 너비 ← / →' },
-      { keys: 'Alt-- / Alt-=', label: 'Epics 높이 ↑ / ↓' },
       { keys: '마우스 드래그', label: 'pane 경계선 드래그' },
     ],
   },
   {
-    title: '아티팩트 열기 (Product-Hub pane → Enter)',
+    title: 'Product-Hub 패널',
     rows: [
-      { keys: 'Enter',        label: 'nvim + markview 로 열기 — 렌더 + 편집 한 화면' },
-      { keys: 'i',            label: '편집 모드 시작 (insert)' },
-      { keys: 'Esc',          label: '편집 종료 → 렌더링 보기' },
-      { keys: ':w / :q / :wq', label: '저장 / 닫기 / 저장 후 닫기' },
-      { keys: 'b',            label: '브랜치 전환 popup (master / feat/.../prd / spec / ...)' },
-      { keys: 'o',            label: '커서 파일을 GitHub blob 페이지로 열기 (산출물 없으면 PR 검색)' },
+      { keys: 'Enter',        label: '커서 파일을 nvim 으로 열기' },
+      { keys: 'b',            label: '브랜치 전환 popup' },
+      { keys: 'o',            label: '커서 파일을 GitHub blob 페이지로 열기' },
     ],
   },
 ];
