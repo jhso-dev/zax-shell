@@ -305,12 +305,12 @@ export function showBranchSwitchPopup(
 }
 
 // ── pane navigation bindings ──────────────────────────────────────────────
-// Tab / Ctrl-T / Alt-* cycle and resize panes. While a popup is open we
-// must *unbind* them so the embedded tool (help) gets Tab/etc. raw —
-// otherwise tmux intercepts the key and shifts focus to a pane, visually
-// covering the popup ("popup disappears" bug).
+// Alt-* resize panes; C-t cycles panes. While a popup is open we must
+// *unbind* them so the embedded tool (help) gets the keys raw — otherwise
+// tmux intercepts the key and shifts focus to a pane, visually covering
+// the popup ("popup disappears" bug).
 
-const NAV_KEYS = ['Tab', 'C-t', 'M-,', 'M-.', 'M--', 'M-='];
+const NAV_KEYS = ['M-,', 'M-.', 'M--', 'M-=', 'C-t'];
 
 const NAV_FILE = join(STATE_DIR, 'nav-targets.json');
 interface NavTargets { sessionName: string; right: string; artifacts: string }
@@ -330,16 +330,10 @@ export function applyNavBindings(sessionName: string,
   const epicsId = `${sessionName}:0.1`;
   saveNavTargets({ sessionName, right: rightPaneId, artifacts: artifactsPaneId });
 
+  // C-t cycles panes. Cycle order: Epics → Product-Hub → Claude → Epics.
+  // Dashboard pane excluded (status-only).
   tmuxQuiet([
-    'bind-key', '-T', 'root', '-N', 'cycle (Tab pass-through in Claude)',
-    'Tab',
-    'if-shell', '-F',
-    `#{==:#{pane_id},${rightPaneId}}`,
-    'send-keys Tab',
-    `if-shell -F '#{==:#{pane_id},${artifactsPaneId}}' 'select-pane -t ${rightPaneId}' 'select-pane -t ${artifactsPaneId}'`,
-  ]);
-  tmuxQuiet([
-    'bind-key', '-T', 'root', '-N', 'global cycle (works in Claude)',
+    'bind-key', '-T', 'root', '-N', 'pane: cycle',
     'C-t',
     'if-shell', '-F',
     `#{==:#{pane_id},${rightPaneId}}`,

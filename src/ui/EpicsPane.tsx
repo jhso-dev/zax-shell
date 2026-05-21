@@ -207,6 +207,7 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
       if (key.return) {
         const q = searchInput.trim();
         if (q) emitEvent({ type: 'jira-search', query: q });
+        else if (state?.epicSearch) emitEvent({ type: 'jira-search-clear' });
         setSearching(false);
         return;
       }

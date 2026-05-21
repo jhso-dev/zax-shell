@@ -35,8 +35,7 @@ const SECTIONS: Section[] = [
   {
     title: 'pane 이동',
     rows: [
-      { keys: 'Tab',          label: 'Epics ↔ Product-Hub ↔ Claude 순환 (Claude 안에서는 Claude로 통과)' },
-      { keys: 'Ctrl-T',       label: 'Claude에서 키보드로 빠져나오기 (Claude 단축키 침범 X)' },
+      { keys: 'Ctrl-T',       label: 'pane 순환 (Epics → Hub → Claude → ...)' },
       { keys: '마우스 클릭',  label: '클릭한 pane으로 포커스' },
       { keys: 'Ctrl-B d',     label: 'detach (세션 유지)' },
       { keys: 'Ctrl-B z',     label: '현재 pane 최대화 / 복원' },
