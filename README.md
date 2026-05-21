@@ -17,18 +17,13 @@ ZAX 워크플로우용 콕핏 TUI — Jira 에픽, product-hub 산출물, Claude
 
 ## 설치
 
-macOS, Homebrew 필요. 다음을 순서대로:
+macOS, Homebrew 필요.
 
 ```bash
-# 1) 설치 스크립트 다운로드
-curl -fsSLo /tmp/zax-shell-install.sh https://raw.githubusercontent.com/jhso-dev/zax-shell/main/install.sh
-
-# 2) (선택) 내용 확인
-less /tmp/zax-shell-install.sh
-
-# 3) 실행
-bash /tmp/zax-shell-install.sh
+curl -fsSLo /tmp/zax-shell-install.sh https://raw.githubusercontent.com/jhso-dev/zax-shell/main/install.sh && bash /tmp/zax-shell-install.sh
 ```
+
+> 스크립트 내용을 먼저 보고 싶다면 `&& bash ...` 빼고 실행 후 `less /tmp/zax-shell-install.sh` 로 검토.
 
 install.sh가 자동으로 처리하는 것:
 - `~/.zax-shell` 에 clone + build
