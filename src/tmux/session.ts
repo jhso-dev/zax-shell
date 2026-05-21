@@ -295,6 +295,9 @@ export function showBranchSwitchPopup(
   return withSuspendedNav(() => new Promise<string | null>((resolve) => {
     const child = spawn('tmux', [
       'display-popup', '-E',
+      // tmux 3.3+ — push our STATE_DIR into the popup so dev/prod data
+      // doesn't get crossed (popup otherwise falls back to ~/.zax-shell).
+      '-e', `ZAX_SHELL_STATE_DIR=${STATE_DIR}`,
       '-w', '70', '-h', String(Math.min(20, 6 + opts.candidates.length)),
       '-S', 'fg=cyan,bold',
       '-T', ' branch switch ',
