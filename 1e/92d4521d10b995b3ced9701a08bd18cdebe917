@@ -1,0 +1,25 @@
+src/tmux/session.ts
+  s_878fe18417e2ac::t_3d8132cc0b2885 110-115
+  s_878fe18417e2ac::t_c1818e00955668 192
+package.json
+  s_878fe18417e2ac::t_4b1bb2d5f47de9 3
+src/cli.ts
+  s_878fe18417e2ac::t_30ae1256122527 118
+  s_878fe18417e2ac::t_aa523b3c7e1aea 94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "1e92d4521d10b995b3ced9701a08bd18cdebe917",
+  "prompts": {},
+  "sessions": {
+    "s_878fe18417e2ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b2e480b5-c88c-4736-bc9f-4da5da14c2c1",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Nathen So <jhso@zigbang.com>"
+    }
+  }
+}
