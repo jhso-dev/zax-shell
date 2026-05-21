@@ -177,9 +177,6 @@ export const EpicsPane: React.FC<{ productHubPath: string }> = ({ productHubPath
 
   useEffect(() => { savePrefs({ query, projectFilter, sortMode }); },
     [query, projectFilter, sortMode]);
-  useEffect(() => {
-    if (state?.selectedEpic) savePrefs({ selectedEpicKey: state.selectedEpic });
-  }, [state?.selectedEpic]);
 
   const cycleProjectFilter = () => {
     if (!projects.length) return;

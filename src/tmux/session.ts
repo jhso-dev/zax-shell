@@ -341,6 +341,14 @@ export function applyNavBindings(sessionName: string,
     `if-shell -F '#{==:#{pane_id},${artifactsPaneId}}' 'select-pane -t ${rightPaneId}' 'select-pane -t ${artifactsPaneId}'`,
   ]);
 
+  // Ctrl+C from any pane → kill the cockpit session entirely. Intercepts
+  // before shells/Claude see the keystroke (user explicitly chose this:
+  // "어느 패널에서든지 ctrl+c 발생시 zax-shell 을 그냥 죽여줘").
+  tmuxQuiet([
+    'bind-key', '-T', 'root', '-N', 'kill cockpit',
+    'C-c', 'kill-session', '-t', sessionName,
+  ]);
+
   tmuxQuiet(['bind-key', '-T', 'root', '-N', 'shrink left column',
              'M-,', 'resize-pane', '-t', epicsId, '-L', '5']);
   tmuxQuiet(['bind-key', '-T', 'root', '-N', 'grow left column',

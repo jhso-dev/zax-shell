@@ -450,16 +450,10 @@ const layoutSaveTimer = setInterval(() => {
   }
 }, 2_000);
 
-// Initial Jira load. When it finishes, restore the previously-selected
-// epic so the right pane comes up with claude already running instead of
-// the idle banner.
-void (async () => {
-  await refreshAllEpics(false);
-  const restore = prefs.selectedEpicKey;
-  if (restore && state.epics.find((e) => e.key === restore)) {
-    handleEvent({ type: 'select-epic', epicKey: restore });
-  }
-})();
+// Initial Jira load. Selection is intentionally NOT auto-restored — every
+// startup begins with the idle banner so claude only spawns after an
+// explicit user pick.
+void refreshAllEpics(false);
 
 // If the tmux session disappears, the daemon must exit too — otherwise it
 // outlives its UI and keeps polling Jira invisibly. Grace period covers the
@@ -571,10 +565,11 @@ async function shutdown(reason: string): Promise<void> {
   clearInterval(dashboardTimer);
   clearInterval(headTimer);
 
-  try {
-    const finalLayout = captureLayout(cfg.tmuxSession);
-    if (finalLayout && finalLayout !== lastSavedLayout) savePrefs({ tmuxLayout: finalLayout });
-  } catch {}
+  // Intentionally NOT capturing a final layout here. By the time shutdown
+  // fires (often from external SIGINT/SIGTERM), the tmux session may
+  // already be partially torn down, and saving that broken snapshot would
+  // make the next startup unrecoverable. The 2s live-save loop already
+  // captures every legitimate resize.
   try { stopEvents(); } catch {}
   try { stopFsWatch(); } catch {}
 

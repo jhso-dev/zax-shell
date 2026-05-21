@@ -5,7 +5,6 @@ import { STATE_DIR } from './state.js';
 const FILE = join(STATE_DIR, 'ui-prefs.json');
 
 export interface UiPrefs {
-  selectedEpicKey?: string;
   query?: string;
   projectFilter?: string | null;
   sortMode?: 'updated' | 'key' | 'status';
@@ -14,7 +13,6 @@ export interface UiPrefs {
 }
 
 const DEFAULTS: UiPrefs = {
-  selectedEpicKey: undefined,
   query: '',
   projectFilter: null,
   sortMode: 'updated',
