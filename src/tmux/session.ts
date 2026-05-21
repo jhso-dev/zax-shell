@@ -107,6 +107,12 @@ export function buildSession(opts: BuildOpts): void {
     paneCmd('dashboard'),
   ], { env, stdio: 'ignore' });
 
+  // zsh as the default shell for all subsequently-spawned panes. macOS
+  // ships /bin/zsh and made it the system default since Catalina; bash
+  // here would print the "/etc/bashrc deprecation" banner inside Claude.
+  tmuxQuiet(['set-option', '-t', sessionName, 'default-shell', '/bin/zsh']);
+  tmuxQuiet(['set-option', '-t', sessionName, 'default-command', '/bin/zsh -l']);
+
   tmux(['split-window', '-t', `${sessionName}:0.0`, '-v', '-l', '85%',
         paneCmd('epics')]);
 
@@ -183,7 +189,7 @@ export function notifyRightPane(message: string): boolean {
   try {
     const safe = message.replace(/'/g, "'\\''");
     tmux(['respawn-pane', '-k', '-t', paneId,
-          `bash -lc 'echo "${safe}"; exec bash'`]);
+          `zsh -lc 'echo "${safe}"; exec zsh'`]);
     return true;
   } catch { return false; }
 }

@@ -91,7 +91,7 @@ const killDaemon = (): void => {
   }
 };
 
-/** Build the bash command that runs in the right pane until an epic is picked. */
+/** Build the shell command that runs in the right pane until an epic is picked. */
 const buildIdleCommand = (productHubPath: string): string => {
   const banner = [
     '',
@@ -115,7 +115,7 @@ const buildIdleCommand = (productHubPath: string): string => {
     '',
   ].join('\n');
   const safe = banner.replace(/'/g, "'\\''");
-  return `bash -lc 'printf "%s\\n" '\\''${safe}'\\''; exec bash'`;
+  return `zsh -lc 'printf "%s\\n" '\\''${safe}'\\''; exec zsh'`;
 };
 
 const killAll = (): void => {
