@@ -1,26 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { STATE_DIR } from './ipc/state.js';
 
 const REPO = 'jhso-dev/zax-shell';
-const CACHE_FILE = join(STATE_DIR, 'update-check.json');
-const CHECK_TTL_MS = 12 * 60 * 60 * 1000;
-
-interface Cache {
-  lastCheckedAt: number;
-  latestVersion: string | null;
-}
-
-const readCache = (): Cache => {
-  try { return JSON.parse(readFileSync(CACHE_FILE, 'utf8')) as Cache; }
-  catch { return { lastCheckedAt: 0, latestVersion: null }; }
-};
-
-const writeCache = (c: Cache) => {
-  if (!existsSync(dirname(CACHE_FILE))) mkdirSync(dirname(CACHE_FILE), { recursive: true });
-  writeFileSync(CACHE_FILE, JSON.stringify(c, null, 2), 'utf8');
-};
 
 // Uses gh CLI (already a hard dep) so this works on private repos too.
 // Returns null on any failure — update check should never break startup.
@@ -41,21 +21,8 @@ export interface UpdateInfo {
 }
 
 export function checkLatestVersion(currentVersion: string): UpdateInfo | null {
-  const cache = readCache();
-  const stale = Date.now() - cache.lastCheckedAt > CHECK_TTL_MS;
-
-  let latest = cache.latestVersion;
-  if (stale || !latest) {
-    const fetched = fetchLatestVersion();
-    if (fetched) {
-      latest = fetched;
-      writeCache({ lastCheckedAt: Date.now(), latestVersion: fetched });
-    } else if (!latest) {
-      return null;
-    }
-  }
+  const latest = fetchLatestVersion();
   if (!latest) return null;
-
   return {
     current: currentVersion,
     latest,
