@@ -62,32 +62,33 @@ zax-shell
 ### Epics 패널
 | 키 | 동작 |
 |---|---|
-| `↑↓` / `j` `k` | 커서 이동 |
+| `↑↓` / `j` `k` / `PgUp` `PgDn` / `G` | 커서 이동 |
 | `Enter` | 에픽 선택 → 우측 Claude 자동 실행 |
 | `/` | 로컬 키워드 필터 |
-| `s` | **Jira 전체 검색** (참여 안 한 에픽까지) |
+| `s` | **Jira 전체 검색** (참여 안 한 에픽까지). 빈 입력 + Enter 로 검색 해제 |
 | `S` | 정렬 순환 (updated → key → status) |
 | `p` | 프로젝트 prefix 순환 |
 | `r` | Jira 에픽 다시 조회 |
 | `o` | 브라우저에서 **Jira** 에픽 페이지 열기 |
 | `Esc` | 검색/필터 해제 |
-| `?` | 도움말 popup |
-| `q` | 종료 확인 popup |
 
 ### Product-Hub 패널
 | 키 | 동작 |
 |---|---|
-| `Enter` | 산출물 열기 (`.md` → nvim+markview, `.html` → 기본 브라우저) |
+| `Enter` | 산출물 열기 — `.md` → nvim+markview **(view-only)**, `.html` → 기본 브라우저 |
+| `b` | 브랜치 전환 popup (`origin/feat/{KEY}/*` 자동 탐지) |
 | `r` | product-hub git fetch + main worktree 갱신 |
-| `o` | 브라우저에서 **GitHub** PR 검색 (org 전체에서 이 에픽 키 포함) |
+| `o` | 산출물 있으면 GitHub blob, 없으면 PR 검색 (org 전체) |
 
-### 패널 이동 (tmux)
+### 공통 (Dashboard / Epics / Product-Hub 패널 모두)
 | 키 | 동작 |
 |---|---|
-| `Tab` | Epics ↔ Product-Hub ↔ Claude (Claude 안에선 pass-through) |
-| `Ctrl-T` | Claude에서 키보드로 빠져나오기 |
-| `Alt-,` `Alt-.` | 좌측 컬럼 너비 ←/→ |
-| `Alt--` `Alt-=` | Epics 높이 ↑/↓ |
+| `?` | 도움말 popup |
+| `q` | 종료 확인 popup |
+| `Ctrl-T` | pane 순환 — Epics → Hub → Claude → Epics |
+| `Ctrl-C` | **cockpit 전체 종료 (어느 pane에서 눌러도 즉시)** |
+| 마우스 클릭 | 클릭한 pane으로 포커스 |
+| 마우스 드래그 | pane 경계선 |
 
 ## 동작 원리
 
@@ -124,12 +125,12 @@ zax-shell (CLI)
 | **tmux** | 4-pane 멀티플렉서 | ✓ |
 | **acli** | Jira 에픽 조회 (workitem search) | ✓ (OAuth) |
 | **gh** | product-hub git clone/fetch | ✓ (OAuth) |
-| **nvim + markview** | Enter — .md 렌더+편집 한 화면 | ✓ |
+| **nvim + markview** | Enter — `.md` 렌더 (view-only) | ✓ |
 
 ## 자주 묻는 것
 
 **Q. product-hub를 따로 클론해야 하나요?**
-아니요. zax-shell이 첫 실행 시 **자체 클론**을 `~/.cache/zax-shell/repo` 에 자동으로 만듭니다. 사용자가 따로 갖고 있는 `~/dev/product-hub` 같은 워킹 트리는 zax-shell이 절대 안 건드립니다. 기존 클론을 재사용하고 싶으면 `zax-shell --set productHubPath=/path/to/your/product-hub`.
+아니요. zax-shell이 첫 실행 시 **자체 클론**을 `~/.zax-shell/state/repo` 에 자동으로 만듭니다. 사용자가 따로 갖고 있는 `~/dev/product-hub` 같은 워킹 트리는 zax-shell이 절대 안 건드립니다. 기존 클론을 재사용하고 싶으면 `zax-shell --set productHubPath=/path/to/your/product-hub`.
 
 **Q. product-hub working tree가 dirty/다른 브랜치인데 zax-shell이 동작하나요?**
 네. zax-shell은 `_main` worktree(별도 detached 체크아웃)를 사용해서 사용자 워킹 트리에 무관하게 동작합니다.
@@ -169,7 +170,7 @@ Jira 한국어 인스턴스는 `issuetype = 에픽`, 영문은 `Epic`.
 
 ## 업그레이드
 
-설치할 때와 동일한 명령을 다시 실행하면 최신으로 갱신됩니다 (install.sh가 idempotent).
+zax-shell 실행 시 매번 GitHub Release 의 latest 와 비교합니다. 새 버전이 있으면 prompt 표시 → `y` → 자동 갱신 + 재시작. 수동 갱신은 아래.
 
 ```bash
 cd ~/.zax-shell && git pull && npm ci && npm run build

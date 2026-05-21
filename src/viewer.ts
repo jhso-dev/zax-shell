@@ -13,9 +13,11 @@ export function pickViewer(absPath: string): ViewerChoice {
   const f = shellQuote(absPath);
 
   if (isMd && has('nvim') && existsSync(NVIM_INIT_FILE)) {
+    // -R = read-only. zax-shell artifacts 는 뷰어로만 — 편집/저장은
+    // 직접 IDE / git 으로. swap 파일도 안 만들어 worktree 가 깨끗.
     return {
-      cmd: `nvim -u ${shellQuote(NVIM_INIT_FILE)} ${f}`,
-      name: 'nvim+markview',
+      cmd: `nvim -R -u ${shellQuote(NVIM_INIT_FILE)} ${f}`,
+      name: 'nvim+markview (view-only)',
       closeKey: ':q',
     };
   }

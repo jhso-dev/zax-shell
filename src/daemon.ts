@@ -289,7 +289,7 @@ const handleEvent = (ev: Event) => {
         'new-window', '-t', `${cfg.tmuxSession}:`,
         '-n', winName, v.cmd,
       ], { stdio: 'ignore' });
-      toast('info', `→ ${fname} 열림 (${v.name}) · 편집:i / 저장:Shift+ZZ / 닫기:${v.closeKey}`);
+      toast('info', `→ ${fname} 열림 (${v.name}) · 닫기:${v.closeKey}`);
     } catch (err) {
       toast('error', `파일 열기 실패: ${(err as Error).message.slice(0, 60)}`);
     }
