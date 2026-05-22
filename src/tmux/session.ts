@@ -134,24 +134,36 @@ export function buildSession(opts: BuildOpts): void {
   // tmux focus is on the wrong pane" trap.
   tmuxQuiet(['set-option', '-t', sessionName, 'mouse', 'on']);
 
+  // Disable alternate-screen so the Claude pane's output stays in tmux's
+  // scrollback. Without this, Claude (and any other full-screen TUI)
+  // hides its conversation from tmux history → wheel/copy-mode scroll
+  // would show an empty buffer. Trade-off: nvim/etc 종료 시 콘텐츠가
+  // 잠깐 그대로 보이지만 cockpit context 에서는 허용 가능.
+  tmuxQuiet(['set-option', '-t', sessionName, 'alternate-screen', 'off']);
+
+  // Larger scrollback (default 2000) so long Claude conversations stay
+  // reachable by wheel/copy-mode.
+  tmuxQuiet(['set-option', '-t', sessionName, 'history-limit', '50000']);
+
   // Prevent the default mouse behaviors that enter copy-mode — once in copy
   // mode, arrows move the selection cursor instead of reaching our Ink panes.
   tmuxQuiet(['unbind-key', '-T', 'root', 'MouseDrag1Pane']);
   tmuxQuiet(['unbind-key', '-T', 'root', 'DoubleClick1Pane']);
   tmuxQuiet(['unbind-key', '-T', 'root', 'TripleClick1Pane']);
   // Wheel: on Ink panes (Epics / Product-Hub) translate to Up/Down so
-  // their cursor moves. On the Claude pane forward the raw mouse seq
-  // (`send-keys -M`) so Claude's TUI handles its own scrollback.
+  // their cursor moves. On the Claude pane enter copy-mode and scroll
+  // through tmux's scrollback (which now retains Claude's output since
+  // alternate-screen is off above).
   tmuxQuiet([
     'bind-key', '-T', 'root', 'WheelUpPane',
     'if-shell', '-F', `#{==:#{pane_id},${rightPaneId}}`,
-    'send-keys -M',
+    `select-pane -t ${rightPaneId} ; copy-mode -e -t ${rightPaneId} ; send-keys -X -t ${rightPaneId} -N 3 scroll-up`,
     'select-pane -t = ; send-keys -t = Up',
   ]);
   tmuxQuiet([
     'bind-key', '-T', 'root', 'WheelDownPane',
     'if-shell', '-F', `#{==:#{pane_id},${rightPaneId}}`,
-    'send-keys -M',
+    `if-shell -F '#{pane_in_mode}' 'send-keys -X -t ${rightPaneId} -N 3 scroll-down' ''`,
     'select-pane -t = ; send-keys -t = Down',
   ]);
 
