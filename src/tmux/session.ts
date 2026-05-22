@@ -113,6 +113,17 @@ export function buildSession(opts: BuildOpts): void {
   tmuxQuiet(['set-option', '-t', sessionName, 'default-shell', '/bin/zsh']);
   tmuxQuiet(['set-option', '-t', sessionName, 'default-command', '/bin/zsh -l']);
 
+  // Strip alternate-screen capability from the tmux *client* side too.
+  // Without this, tmux attaches with smcup/rmcup so the terminal (cmux,
+  // iTerm2, etc.) hides our output from its own scrollback — cmux #2334
+  // confirms cmux doesn't preserve alternate-screen output, and cmux
+  // #1965 shows wheel events are consumed by cmux's own scrollback view
+  // instead of being forwarded. By disabling smcup/rmcup we make cmux
+  // see zax-shell as a regular shell, so its wheel scrollback works
+  // naturally over the cockpit. Server-level option, append (-a) so we
+  // don't clobber user's existing overrides.
+  tmuxQuiet(['set-option', '-s', '-a', 'terminal-overrides', ',*:smcup@:rmcup@']);
+
   tmux(['split-window', '-t', `${sessionName}:0.0`, '-v', '-l', '85%',
         paneCmd('epics')]);
 
