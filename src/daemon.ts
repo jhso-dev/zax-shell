@@ -227,7 +227,9 @@ const handleEvent = (ev: Event) => {
     // `claude --continue` resumes the cwd's most recent conversation; falls
     // back to a fresh session if there isn't one yet. Each epic (own folder
     // OR worktree) has its own cwd, so claude tracks them independently.
-    const claudeCmd = `${cfg.claudeBin} --continue 2>/dev/null || ${cfg.claudeBin}`;
+    // After Claude exits (e.g. /exit), drop into zsh instead of closing
+    // the pane — keeps the cockpit's 4-pane layout intact.
+    const claudeCmd = `(${cfg.claudeBin} --continue 2>/dev/null || ${cfg.claudeBin}); exec zsh -l`;
 
     if (!state.productHubExists) {
       notifyRightPane(`[ZAX] product-hub 디렉토리가 없습니다 (${cfg.productHubPath}).\n  gh repo clone zigbang/product-hub ${cfg.productHubPath}`);

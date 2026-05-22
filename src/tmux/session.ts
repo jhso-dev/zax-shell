@@ -139,10 +139,21 @@ export function buildSession(opts: BuildOpts): void {
   tmuxQuiet(['unbind-key', '-T', 'root', 'MouseDrag1Pane']);
   tmuxQuiet(['unbind-key', '-T', 'root', 'DoubleClick1Pane']);
   tmuxQuiet(['unbind-key', '-T', 'root', 'TripleClick1Pane']);
-  tmuxQuiet(['bind-key', '-T', 'root', 'WheelUpPane',
-             'select-pane -t = ; send-keys -t = Up']);
-  tmuxQuiet(['bind-key', '-T', 'root', 'WheelDownPane',
-             'select-pane -t = ; send-keys -t = Down']);
+  // Wheel: on Ink panes (Epics / Product-Hub) translate to Up/Down so
+  // their cursor moves. On the Claude pane forward the raw mouse seq
+  // (`send-keys -M`) so Claude's TUI handles its own scrollback.
+  tmuxQuiet([
+    'bind-key', '-T', 'root', 'WheelUpPane',
+    'if-shell', '-F', `#{==:#{pane_id},${rightPaneId}}`,
+    'send-keys -M',
+    'select-pane -t = ; send-keys -t = Up',
+  ]);
+  tmuxQuiet([
+    'bind-key', '-T', 'root', 'WheelDownPane',
+    'if-shell', '-F', `#{==:#{pane_id},${rightPaneId}}`,
+    'send-keys -M',
+    'select-pane -t = ; send-keys -t = Down',
+  ]);
 
   applyNavBindings(sessionName, rightPaneId, artifactsPaneId);
 
